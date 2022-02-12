@@ -1,0 +1,575 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Acquisition &#8212; Deep Learning for Conversion Rate Prediction</title>
+    
+  <link href="_static/css/theme.css" rel="stylesheet">
+  <link href="_static/css/index.ff1ffe594081f20da1ef19478df9384b.css" rel="stylesheet">
+
+    
+  <link rel="stylesheet"
+    href="_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+    
+      
+
+    
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-book-theme.css?digest=c3fdc42140077d1ad13ad2f1588a4309" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-thebe.css" />
+    <link rel="stylesheet" type="text/css" href="_static/panels-main.c949a650a448cc0ae9fd3441c0e17fb0.css" />
+    <link rel="stylesheet" type="text/css" href="_static/panels-variables.06eb56fa6e07937060861dad626602ad.css" />
+    
+  <link rel="preload" as="script" href="_static/js/index.be7d3bbb2ef33a8344ce.js">
+
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/togglebutton.js"></script>
+    <script src="_static/clipboard.min.js"></script>
+    <script src="_static/copybutton.js"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
+    <script src="_static/sphinx-book-theme.d59cb220de22ca1c485ebbdc042f0030.js"></script>
+    <script async="async" src="https://unpkg.com/thebe@0.5.1/lib/index.js"></script>
+    <script>
+        const thebe_selector = ".thebe"
+        const thebe_selector_input = "pre"
+        const thebe_selector_output = ".output"
+    </script>
+    <script async="async" src="_static/sphinx-thebe.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Data Profile" href="22_methods_data_profile.html" />
+    <link rel="prev" title="Data" href="20_methods_data_intro.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="None">
+    
+
+    <!-- Google Analytics -->
+    
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80">
+    
+    <div class="container-fluid" id="banner"></div>
+
+    
+
+    <div class="container-xl">
+      <div class="row">
+          
+<div class="col-12 col-md-3 bd-sidebar site-navigation show" id="site-navigation">
+    
+        <div class="navbar-brand-box">
+    <a class="navbar-brand text-wrap" href="index.html">
+      
+        <!-- `logo` is deprecated in Sphinx 4.0, so remove this when we stop supporting 3 -->
+        
+      
+      
+      <img src="_static/cvr.png" class="logo" alt="logo">
+      
+      
+      <h1 class="site-logo" id="site-title">Deep Learning for Conversion Rate Prediction</h1>
+      
+    </a>
+</div><form class="bd-search d-flex align-items-center" action="search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search this book..." aria-label="Search this book..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item active">
+        <ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="10_introduction.html">
+   Introduction
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Methods
+ </span>
+</p>
+<ul class="current nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="20_methods_data_intro.html">
+   Data
+  </a>
+ </li>
+ <li class="toctree-l1 current active">
+  <a class="current reference internal" href="#">
+   Data Acquisition
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="22_methods_data_profile.html">
+   Data Profile
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  References
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="99_references.html">
+   References
+  </a>
+ </li>
+</ul>
+
+    </div>
+</nav> <!-- To handle the deprecated key -->
+
+<div class="navbar_extra_footer">
+  Powered by <a href="https://jupyterbook.org">Jupyter Book</a>
+</div>
+
+</div>
+
+
+          
+
+
+          
+<main class="col py-md-3 pl-md-4 bd-content overflow-auto" role="main">
+    
+    <div class="topbar container-xl fixed-top">
+    <div class="topbar-contents row">
+        <div class="col-12 col-md-3 bd-topbar-whitespace site-navigation show"></div>
+        <div class="col pl-md-4 topbar-main">
+            
+            <button id="navbar-toggler" class="navbar-toggler ml-0" type="button" data-toggle="collapse"
+                data-toggle="tooltip" data-placement="bottom" data-target=".site-navigation" aria-controls="navbar-menu"
+                aria-expanded="true" aria-label="Toggle navigation" aria-controls="site-navigation"
+                title="Toggle navigation" data-toggle="tooltip" data-placement="left">
+                <i class="fas fa-bars"></i>
+                <i class="fas fa-arrow-left"></i>
+                <i class="fas fa-arrow-up"></i>
+            </button>
+            
+            
+<div class="dropdown-buttons-trigger">
+    <button id="dropdown-buttons-trigger" class="btn btn-secondary topbarbtn" aria-label="Download this page"><i
+            class="fas fa-download"></i></button>
+
+    <div class="dropdown-buttons">
+        <!-- ipynb file if we had a myst markdown file -->
+        
+        <!-- Download raw file -->
+        <a class="dropdown-buttons" href="_sources/21_methods_data_acquisition.ipynb"><button type="button"
+                class="btn btn-secondary topbarbtn" title="Download source file" data-toggle="tooltip"
+                data-placement="left">.ipynb</button></a>
+        <!-- Download PDF via print -->
+        <button type="button" id="download-print" class="btn btn-secondary topbarbtn" title="Print to PDF"
+                onclick="printPdf(this)" data-toggle="tooltip" data-placement="left">.pdf</button>
+    </div>
+</div>
+
+            <!-- Source interaction buttons -->
+
+<div class="dropdown-buttons-trigger">
+    <button id="dropdown-buttons-trigger" class="btn btn-secondary topbarbtn"
+        aria-label="Connect with source repository"><i class="fab fa-github"></i></button>
+    <div class="dropdown-buttons sourcebuttons">
+        <a class="repository-button"
+            href="https://john-james-ai.github.io/DeepCVR/"><button type="button" class="btn btn-secondary topbarbtn"
+                data-toggle="tooltip" data-placement="left" title="Source repository"><i
+                    class="fab fa-github"></i>repository</button></a>
+        <a class="issues-button"
+            href="https://john-james-ai.github.io/DeepCVR//issues/new?title=Issue%20on%20page%20%2F21_methods_data_acquisition.html&body=Your%20issue%20content%20here."><button
+                type="button" class="btn btn-secondary topbarbtn" data-toggle="tooltip" data-placement="left"
+                title="Open an issue"><i class="fas fa-lightbulb"></i>open issue</button></a>
+        
+    </div>
+</div>
+
+            <!-- Full screen (wrap in <a> to have style consistency -->
+
+<a class="full-screen-button"><button type="button" class="btn btn-secondary topbarbtn" data-toggle="tooltip"
+        data-placement="bottom" onclick="toggleFullScreen()" aria-label="Fullscreen mode"
+        title="Fullscreen mode"><i
+            class="fas fa-expand"></i></button></a>
+
+            <!-- Launch buttons -->
+
+        </div>
+
+        <!-- Table of contents -->
+        <div class="d-none d-md-block col-md-2 bd-toc show noprint">
+            
+            <div class="tocsection onthispage pt-5 pb-3">
+                <i class="fas fa-list"></i> Contents
+            </div>
+            <nav id="bd-toc-nav" aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#data-pipeline">
+   Data Pipeline
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#datasource">
+     Datasource
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#extract">
+     Extract
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#transform">
+     Transform
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#create-and-save-dataset-object">
+     Create and Save Dataset Object
+    </a>
+    <ul class="nav section-nav flex-column">
+     <li class="toc-h4 nav-item toc-entry">
+      <a class="reference internal nav-link" href="#datapipeline-config-and-construction">
+       DataPipeline Config and Construction
+      </a>
+     </li>
+    </ul>
+   </li>
+  </ul>
+ </li>
+</ul>
+
+            </nav>
+        </div>
+    </div>
+</div>
+    <div id="main-content" class="row">
+        <div class="col-12 col-md-9 pl-md-3 pr-md-0">
+            <!-- Table of contents that is only displayed when printing the page -->
+            <div id="jb-print-docs-body" class="onlyprint">
+                <h1>Data Acquisition</h1>
+                <!-- Table of contents -->
+                <div id="print-main-content">
+                    <div id="jb-print-toc">
+                        
+                        <div>
+                            <h2> Contents </h2>
+                        </div>
+                        <nav aria-label="Page">
+                            <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#data-pipeline">
+   Data Pipeline
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#datasource">
+     Datasource
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#extract">
+     Extract
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#transform">
+     Transform
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#create-and-save-dataset-object">
+     Create and Save Dataset Object
+    </a>
+    <ul class="nav section-nav flex-column">
+     <li class="toc-h4 nav-item toc-entry">
+      <a class="reference internal nav-link" href="#datapipeline-config-and-construction">
+       DataPipeline Config and Construction
+      </a>
+     </li>
+    </ul>
+   </li>
+  </ul>
+ </li>
+</ul>
+
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            
+              <div>
+                
+  <div class="tex2jax_ignore mathjax_ignore section" id="data-acquisition">
+<h1>Data Acquisition<a class="headerlink" href="#data-acquisition" title="Permalink to this headline">¶</a></h1>
+<p>The Criteo Sponsored Search Conversion Log Dataset contains 90 days of live click and conversion traffic, twenty-three product features for over 16m observations. This preliminary segment will extract the data from the Criteo Labs website and stage it for analysis and downstream processing.</p>
+<div class="cell tag_hide-output tag_remove-output docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># IMPORTS</span>
+<span class="kn">from</span> <span class="nn">myst_nb</span> <span class="kn">import</span> <span class="n">glue</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s1">&#39;display.width&#39;</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">float_format</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:,.2f}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span>
+
+<span class="kn">from</span> <span class="nn">cvr.data</span> <span class="kn">import</span> <span class="n">criteo_columns</span><span class="p">,</span> <span class="n">criteo_dtypes</span>
+<span class="kn">from</span> <span class="nn">cvr.core.asset</span> <span class="kn">import</span> <span class="n">AssetPassport</span>
+<span class="kn">from</span> <span class="nn">cvr.core.pipeline</span> <span class="kn">import</span> <span class="n">DataPipelineBuilder</span><span class="p">,</span> <span class="n">PipelineConfig</span>
+<span class="kn">from</span> <span class="nn">cvr.core.atelier</span> <span class="kn">import</span> <span class="n">AtelierFabrique</span>
+<span class="kn">from</span> <span class="nn">cvr.utils.config</span> <span class="kn">import</span> <span class="n">CriteoConfig</span> 
+<span class="kn">from</span> <span class="nn">cvr.core.dataset</span> <span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span> <span class="nn">cvr.data.io</span> <span class="kn">import</span> <span class="n">DatasetWriter</span>
+<span class="kn">from</span> <span class="nn">cvr.data.etl</span> <span class="kn">import</span> <span class="n">Extract</span><span class="p">,</span> <span class="n">Transform</span>
+<span class="kn">from</span> <span class="nn">cvr.core.task</span> <span class="kn">import</span> <span class="n">DatasetFactory</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Yet, there are a few apriori data preprocessing technicalities worth addressing upfront as they will facilitate the profiling and analysis ahead. We’ll add the column names, and convert the target variable ‘sale’, to a binary categorical variable. Non-numeric variables, currently coded as strings, will be convert to pandas category data types for computational and memory efficiencies. Finally, missing data are encoded with ‘-1’. We’ll convert this missing value indicator to Pandas NA values for analysis and processing.</p>
+<div class="section" id="data-pipeline">
+<h2>Data Pipeline<a class="headerlink" href="#data-pipeline" title="Permalink to this headline">¶</a></h2>
+<p>To download, extract, and preprocess the data in a reproducible adjacent manner, we’ll construct a mini extract-transform-load (ETL) data pipeline. Once we extract the data from the Criteo Labs website, we’ll persist the raw data, create a new dataset upon which we’ll perform the data preprocessing steps described above. Next, we’ll create a Dataset object that exposes useful data profiling methods, then pickle the Dataset in a staging area for further data profiling and exploratry data analysis. Allons-y!</p>
+<p>As a preliminary step, let’s establish a workspace, a studio, that will support experimentation and object persistence.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;incept&#39;</span>
+<span class="n">description</span> <span class="o">=</span> <span class="s1">&#39;là où tout commence&#39;</span>
+<span class="n">factory</span> <span class="o">=</span> <span class="n">AtelierFabrique</span><span class="p">()</span>
+<span class="n">studio</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> 
+                        <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span> 
+                        <span class="n">logging_level</span><span class="o">=</span><span class="s1">&#39;info&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="datasource">
+<h3>Datasource<a class="headerlink" href="#datasource" title="Permalink to this headline">¶</a></h3>
+<p>All data pipelines begin with a data source. The configuration details below provide the data source URL and local storage filepaths.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">source</span> <span class="o">=</span> <span class="n">CriteoConfig</span><span class="p">()</span>
+<span class="n">source</span><span class="o">.</span><span class="n">print</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="extract">
+<h3>Extract<a class="headerlink" href="#extract" title="Permalink to this headline">¶</a></h3>
+<p>Downloading the data the Criteo Labs site rate limits to approximately 5 Mbps. This is the most time-consuming step of the pipeline and can take upwards of 15 minutes of download time.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">passport</span> <span class="o">=</span> <span class="n">AssetPassport</span><span class="p">(</span>
+    <span class="n">aid</span><span class="o">=</span> <span class="n">studio</span><span class="o">.</span><span class="n">next_aid</span><span class="p">,</span>
+    <span class="n">asset_type</span> <span class="o">=</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;extract&#39;</span><span class="p">,</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="s1">&#39;Extract step of the Criteo Data ETL pipeline&#39;</span><span class="p">,</span>
+    <span class="n">stage</span> <span class="o">=</span> <span class="s1">&#39;raw&#39;</span><span class="p">)</span>
+
+<span class="n">extract</span> <span class="o">=</span> <span class="n">Extract</span><span class="p">(</span><span class="n">passport</span><span class="o">=</span><span class="n">passport</span><span class="p">,</span>
+                  <span class="n">url</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
+                  <span class="n">download_filepath</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">download_filepath</span><span class="p">,</span>
+                  <span class="n">extract_filepath</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">extract_filepath</span><span class="p">,</span>
+                  <span class="n">destination</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">destination</span><span class="p">,</span>
+                  <span class="n">chunk_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>        <span class="c1"># Download parameters</span>
+                  <span class="n">n_groups</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="transform">
+<h3>Transform<a class="headerlink" href="#transform" title="Permalink to this headline">¶</a></h3>
+<p>The Transform step will add column names, convert strings to category data types, replace the missing value indicators with NaNs and convert the target variable, ‘sale’, to a binary indicator data type.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">passport</span> <span class="o">=</span> <span class="n">AssetPassport</span><span class="p">(</span>
+    <span class="n">aid</span> <span class="o">=</span> <span class="n">studio</span><span class="o">.</span><span class="n">next_aid</span><span class="p">,</span>
+    <span class="n">asset_type</span> <span class="o">=</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;transform&#39;</span><span class="p">,</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="s1">&#39;Transform step of the Criteo Data ETL pipeline&#39;</span><span class="p">,</span>
+    <span class="n">stage</span> <span class="o">=</span> <span class="s1">&#39;staged&#39;</span><span class="p">)</span>
+
+<span class="n">transform</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">passport</span><span class="o">=</span><span class="n">passport</span><span class="p">,</span>
+                      <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">destination</span><span class="p">,</span>
+                      <span class="n">colnames</span><span class="o">=</span><span class="n">criteo_columns</span><span class="p">,</span>
+                      <span class="n">dtypes</span><span class="o">=</span><span class="n">criteo_dtypes</span><span class="p">,</span>
+                      <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="n">missing_values</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;-1&#39;</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span><span class="s1">&#39;-1.00&#39;</span><span class="p">,</span><span class="o">-</span><span class="mf">1.00</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="create-and-save-dataset-object">
+<h3>Create and Save Dataset Object<a class="headerlink" href="#create-and-save-dataset-object" title="Permalink to this headline">¶</a></h3>
+<p>Create a Dataset object in the ‘stage’ stage for profiling and analysis.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">passport</span> <span class="o">=</span> <span class="n">AssetPassport</span><span class="p">(</span>
+    <span class="n">aid</span> <span class="o">=</span> <span class="n">studio</span><span class="o">.</span><span class="n">next_aid</span><span class="p">,</span>
+    <span class="n">asset_type</span> <span class="o">=</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;create_dataset&#39;</span><span class="p">,</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="s1">&#39;Create Dataset object of the Criteo Data ETL pipeline&#39;</span><span class="p">,</span>
+    <span class="n">stage</span> <span class="o">=</span> <span class="s1">&#39;staged&#39;</span><span class="p">)</span>
+
+<span class="n">dataset_passport</span> <span class="o">=</span> <span class="n">AssetPassport</span><span class="p">(</span>
+    <span class="n">aid</span> <span class="o">=</span> <span class="n">studio</span><span class="o">.</span><span class="n">next_aid</span><span class="p">,</span>
+    <span class="n">asset_type</span> <span class="o">=</span> <span class="s1">&#39;dataset&#39;</span><span class="p">,</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;criteo&#39;</span><span class="p">,</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="s1">&#39;Criteo Staged Dataset Object&#39;</span><span class="p">,</span>
+    <span class="n">stage</span> <span class="o">=</span> <span class="s1">&#39;staged&#39;</span><span class="p">)</span>
+
+<span class="n">dataset_factory</span> <span class="o">=</span> <span class="n">DatasetFactory</span><span class="p">(</span><span class="n">passport</span><span class="o">=</span><span class="n">passport</span><span class="p">,</span> <span class="n">dataset_passport</span><span class="o">=</span><span class="n">dataset_passport</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">passport</span> <span class="o">=</span> <span class="n">AssetPassport</span><span class="p">(</span>
+    <span class="n">aid</span> <span class="o">=</span> <span class="n">studio</span><span class="o">.</span><span class="n">next_aid</span><span class="p">,</span>
+    <span class="n">asset_type</span> <span class="o">=</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;save&#39;</span><span class="p">,</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="s1">&#39;Save Dataset object for Criteo Data ETL pipeline&#39;</span><span class="p">,</span>
+    <span class="n">stage</span> <span class="o">=</span> <span class="s1">&#39;staged&#39;</span><span class="p">)</span>
+
+
+<span class="n">dataset_writer</span> <span class="o">=</span> <span class="n">DatasetWriter</span><span class="p">(</span>
+    <span class="n">passport</span><span class="o">=</span><span class="n">passport</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="datapipeline-config-and-construction">
+<h4>DataPipeline Config and Construction<a class="headerlink" href="#datapipeline-config-and-construction" title="Permalink to this headline">¶</a></h4>
+<p>Let’s configure the pipeline with logging for progress monitoring.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">PipelineConfig</span><span class="p">(</span>
+    <span class="n">logger</span><span class="o">=</span><span class="n">studio</span><span class="o">.</span><span class="n">logger</span><span class="p">,</span>       <span class="c1"># Logging object</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>               <span class="c1"># Print messages</span>
+    <span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>                <span class="c1"># If step already completed, don&#39;t force it.</span>
+    <span class="n">progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>              <span class="c1"># No progress bar</span>
+    <span class="n">dataset_repo</span><span class="o">=</span><span class="n">studio</span><span class="o">.</span><span class="n">assets</span><span class="p">,</span>   <span class="c1"># dataset repository</span>
+    <span class="n">directory</span><span class="o">=</span><span class="n">studio</span><span class="o">.</span><span class="n">assets_directory</span>   <span class="c1"># Assets directory for the studio</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Finally, we construct the data pipeline and we are a ‘go’ for ignition.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">builder</span> <span class="o">=</span> <span class="n">DataPipelineBuilder</span><span class="p">()</span>
+
+<span class="n">pipeline</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">set_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span><span class="o">.</span><span class="n">set_passport</span><span class="p">(</span><span class="n">passport</span><span class="p">)</span><span class="o">.</span><span class="n">add_task</span><span class="p">(</span><span class="n">extract</span><span class="p">)</span><span class="o">.</span><span class="n">add_task</span><span class="p">(</span><span class="n">transform</span><span class="p">)</span><span class="o">.</span><span class="n">add_task</span><span class="p">(</span><span class="n">dataset_factory</span><span class="p">)</span><span class="o">.</span><span class="n">add_task</span><span class="p">(</span><span class="n">dataset_writer</span><span class="p">)</span><span class="o">.</span><span class="n">build</span><span class="p">()</span><span class="o">.</span><span class="n">data_pipeline</span>
+
+<span class="n">pipeline</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Viola! Our dataset has been secured. Before we close this task, let’s verify the pipeline endpoint.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dataset</span> <span class="o">=</span> <span class="n">studio</span><span class="o">.</span><span class="n">get_asset</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;criteo&#39;</span><span class="p">,</span> <span class="n">asset_type</span><span class="o">=</span><span class="s1">&#39;dataset&#39;</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="s1">&#39;staged&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dataset</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dataset</span><span class="o">.</span><span class="n">info</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>We can obtrain this dataset from the studio ‘incept’ by its asset id (aid) number ‘0003’ or by its name, data_type, and stage. Data acquisition. This concludes the data acquisition segment.</p>
+</div>
+</div>
+</div>
+</div>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            kernelName: "python3",
+            path: "./."
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+              </div>
+              
+            
+                <!-- Previous / next buttons -->
+<div class='prev-next-area'> 
+    <a class='left-prev' id="prev-link" href="20_methods_data_intro.html" title="previous page">
+        <i class="fas fa-angle-left"></i>
+        <div class="prev-next-info">
+            <p class="prev-next-subtitle">previous</p>
+            <p class="prev-next-title">Data</p>
+        </div>
+    </a>
+    <a class='right-next' id="next-link" href="22_methods_data_profile.html" title="next page">
+    <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Data Profile</p>
+    </div>
+    <i class="fas fa-angle-right"></i>
+    </a>
+</div>
+            
+        </div>
+    </div>
+    <footer class="footer">
+  <p>
+    
+      By John James<br/>
+    
+        &copy; Copyright 2021.<br/>
+  </p>
+</footer>
+</main>
+
+
+      </div>
+    </div>
+  
+  <script src="_static/js/index.be7d3bbb2ef33a8344ce.js"></script>
+
+  </body>
+</html>
