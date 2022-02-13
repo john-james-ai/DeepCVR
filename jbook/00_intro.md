@@ -15,7 +15,10 @@ Digital advertising, a \$374.2 billion market {cite}`marketsGlobalDigitalAdverti
 
 $$\text{CVR}=\frac{\text{Number of Conversions}}{\text{Number of Visitors}}* 100$$
 
-What's more, investment in conversion rate optimization (CRO), the process of increasing the percentage of conversions, is significant and for good reason. It pays off! The proportion of marketing spend allocated to conversion optimization positively correlates with higher conversion rates.
+What's more, investment in conversion rate optimization (CRO), the process of increasing the percentage of conversions, is significant and for good reason. It pays off! As shown in {numref}`cvr_spend_rates`, the proportion of marketing spend allocated to conversion optimization positively correlates with higher conversion rates.
+
+```{table} Conversion Optimization Spend vs Conversion Rates
+:name: cvr_spend_rates
 
 |     Average Conversion Rate    |     Up to 25%    |     More than 25%    |
 |--------------------------------|------------------|----------------------|
@@ -25,6 +28,8 @@ What's more, investment in conversion rate optimization (CRO), the process of in
 |     2% - 4.9%                  |     26%          |     28%              |
 |     5% - 8.9%                  |     8%           |     18%              |
 |     9% and above               |     8%           |     21%              |
+```
+
 Source: [eConsultancy](https://econsultancy.com/most-companies-spend-less-than-5-of-marketing-budgets-on-conversion-optimization/)
 
 These data {cite}`mothMostCompaniesSpend2013` show that CRO spending has its benefits. Firms investing over 25% of their marketing budgets on CRO are twice as likely to enjoy greater conversion rates.
