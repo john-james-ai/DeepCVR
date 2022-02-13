@@ -1,8 +1,11 @@
 # Table of content
 # Learn more at https://jupyterbook.org/customize/toc.html
-#
-- file: 00_intro
-- file: content
-  sections:
-    - file: markdown
-    - file: notebooks
+format: jb-book
+root: 00_intro
+parts:
+  - caption: Data
+    chapters:
+    - file: 10_data/00_data_acquisition
+    - file: 10_data/01_data_profile
+    - file: 10_data/02_data_prepocessing
+    - file: 10_data/03_data_exploratory_analysis
