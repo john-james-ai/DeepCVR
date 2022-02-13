@@ -1,3 +1,15 @@
+---
+jupytext:
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.11.5
+kernelspec:
+  display_name: Python 3
+  language: python
+  name: python3
+---
 # Data
 The Ali-CCP (Alibaba Click and Conversion Prediction) dataset {cite}`maEntireSpaceMultiTask2018`, was collected from Taobao, one of the largest online retailer platforms in the world.  The statistics are listed in {numref}`ali-ccp-stats` below.
 

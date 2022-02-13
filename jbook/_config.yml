@@ -3,7 +3,7 @@
 
 title: Deep Learning for Conversion Rate Prediction - State-of-the-Art Survey
 author: John James
-logo: figures/cvr.png
+logo: cvr.png
 
 # Force re-execution of notebooks on each build.
 # See https://jupyterbook.org/content/execute.html
