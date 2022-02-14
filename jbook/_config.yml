@@ -3,7 +3,9 @@
 
 title: DeepCVR
 author: John James
+copyright: "2022"
 logo: dl.jpg
+only_build_toc_files: true
 
 # Force re-execution of notebooks on each build.
 # See https://jupyterbook.org/content/execute.html
@@ -13,7 +15,7 @@ execute:
 # Define the name of the latex output file for PDF builds
 latex:
   latex_documents:
-    targetname: book.tex
+    targetname: deepcvr.tex
 
 # Add a bibtex file so that we can create citations
 bibtex_bibfiles:
@@ -30,3 +32,5 @@ repository:
 html:
   use_issues_button: true
   use_repository_button: true
+  use_multitoc_numbering: false
+

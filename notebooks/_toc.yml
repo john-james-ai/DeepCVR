@@ -1,0 +1,31 @@
+format: jb-book
+root: 00_preface
+parts:
+- caption: 1. Introduction
+  numbered: True
+  chapters:
+  - file: 1_introduction/11_digital_advertising
+  # - file: 1_introduction/12_challenges_imperatives
+  # - file: 1_introduction/13_current_approaches
+  # - file: 1_introduction/14_project_objectives
+  # - file: 1_introduction/15_project_organization
+- caption: 2. Data Analysis
+  numbered: True
+  chapters:
+  - file: 2_data_analysis/21_introduction
+#   - file: 2_data_analysis/22_data_acquisition
+#   - file: 2_data_analysis/23_data_profile
+#   - file: 2_data_analysis/24_data_preprocessing
+#   - file: 2_data_analysis/25_exploratory_data_analysis
+#   - file: 2_data_analysis/26_summary
+# - caption: 3. Data Preparation
+#   numbered: True
+#   chapters:
+#   - file: 3_data_preparation/31_introduction
+#   - file: 3_data_preparation/32_data_selection
+#   - file: 3_data_preparation/33_data_cleaning
+#   - file: 3_data_preparation/34_feature_engineering
+#   - file: 3_data_preparation/35_data_format
+#   - file: 3_data_preparation/36_data_transformation
+#   - file: 3_data_preparation/37_summary
+- file: 99_references

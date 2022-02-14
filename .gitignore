@@ -6,7 +6,7 @@ __pycache__/
 *.so
 
 # Notes and internal documents
-notes/
+notes/*.*
 */_build/
 
 # Distribution / packaging

@@ -1,11 +1,19 @@
-# Table of content
-# Learn more at https://jupyterbook.org/customize/toc.html
 format: jb-book
-root: 00_intro
+root: 00_preface
+options:
+  numbered: true
 parts:
-  - caption: Data
+  - caption: 1. Introduction
     chapters:
-    - file: 10_data/00_data_acquisition
-    - file: 10_data/01_data_profile
-    - file: 10_data/02_data_prepocessing
-    - file: 10_data/03_data_exploratory_analysis
+    - file: 1_introduction/11_digital_advertising
+  - caption: 2. Data Analysis
+    chapters:
+    - file: 2_data_analysis/21_introduction
+    - file: 2_data_analysis/22_data_acquisition
+    - file: 2_data_analysis/23_data_profile
+    - file: 2_data_analysis/24_data_preprocessing
+    - file: 2_data_analysis/25_exploratory_data_analysis
+    - file: 2_data_analysis/26_summary
+  - caption: References
+    chapters:
+    - file: 99_references
