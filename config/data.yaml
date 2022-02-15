@@ -1,0 +1,7 @@
+---
+# Compressed transport files
+train : data/external/taobao_train.tar.gz
+test : data/external/taobao_test.tar.gz
+destination: data/raw/
+raw_train : data/raw/train.csv
+raw_test : data/raw/test.csv

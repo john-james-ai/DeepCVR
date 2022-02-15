@@ -4,5 +4,8 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"jupyter.notebookFileRoot": "${workspaceFolder}",
+		"python.terminal.executeInFileDir": true
+	}
 }

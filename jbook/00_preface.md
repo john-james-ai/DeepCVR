@@ -11,7 +11,7 @@ kernelspec:
   name: python3
 ---
 # Preface
-Digital advertising, a \$374.2 billion market {cite}`marketsGlobalDigitalAdvertising2021`, is expected to reach $786.2 Billion by 2026, a compound annual growth rate (CAGR) of 13.9% over the five-year period, according to the 2021 Research and Markets report {cite}`marketsGlobalDigitalAdvertising2021a`. At the nexus of large-scale search, text analysis and information retrieval, statistical modeling, machine learning, optimization and microeconomics, programmatic advertising refers to the automated buying and selling of massive inventories of digital ad space, facilitated by a real-time bidding (RTB) process. The digital data explosion, exponential growth in computing power, and advances in machine learning and optimization have propelled programmatic advertising to an estimated $129 billion in global spending.
+Digital advertising, a \$374.2 billion market {cite}`marketsGlobalDigitalAdvertising2021`, is expected to reach \$786.2 Billion by 2026, a compound annual growth rate (CAGR) of 13.9% over the five-year period, according to the 2021 Research and Markets report {cite}`marketsGlobalDigitalAdvertising2021a`. At the nexus of large-scale search, text analysis and information retrieval, statistical modeling, machine learning, optimization and microeconomics, programmatic advertising refers to the automated buying and selling of massive inventories of digital ad space, facilitated by a real-time bidding (RTB) process. The digital data explosion, exponential growth in computing power, and advances in machine learning and optimization have propelled programmatic advertising to an estimated \$129 billion in global spending.
 
 In this context, conversion rate prediction becomes crucial in several respects.
 

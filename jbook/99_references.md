@@ -13,5 +13,5 @@ kernelspec:
 
 # References
 ```{bibliography}
-:style: plain
+:style: unsrt
 ```
