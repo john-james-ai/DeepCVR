@@ -7,6 +7,9 @@ title: "DeepCVR:\nDeep Learning for Conversion Rate Prediction"
 author: John James
 copyright: "2022"
 logo: "images/dl.jpg"
+root: 00_preface
+options:
+  numbered: true
 only_build_toc_files: true
 
 # ================================================================================================ #
@@ -35,7 +38,7 @@ bibtex_bibfiles:
 # ================================================================================================ #
 html:
   favicon                   : "images/neural.png"  # A path to a favicon image
-  use_multitoc_numbering    : false # Whether to continue numbering over multiple TOC sections.
+  use_multitoc_numbering    : true # Whether to continue numbering over multiple TOC sections.
   use_edit_page_button      : true  # Whether to add an "edit this page" button to pages. If `true`, repository information in repository: must be filled in
   use_repository_button     : true  # Whether to add a link to your repository button
   use_issues_button         : true  # Whether to add an "open an issue" button
@@ -71,3 +74,14 @@ shinx:
     - sphinx_inline_tabs
     - sphinx_tabs.tabs
     - sphinx_panels
+
+# ================================================================================================ #
+#                                     PARSING                                                      #
+# ================================================================================================ #
+parse:
+  myst_enable_extensions:
+    - amsmath
+    - colon_fence
+    - dollarmath
+    - linkify
+    - substitution

@@ -1,4 +1,6 @@
 #!/bin/sh
+# Delete prior build
+rm -r jbook/_build/
 # Prepare notebook display customizations
 python3 jbook/prep_notebooks.py
 # Rebuilds the book

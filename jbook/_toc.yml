@@ -1,14 +1,14 @@
 format: jb-book
 root: 00_preface
 options:
-  numbered: true
+  numbered: 3
 parts:
   - caption: 1. Introduction
-    numbered: true
+    numbered: 3
     chapters:
     - file: 1_introduction/11_digital_advertising
   - caption: 2. Data Analysis
-    numbered: true
+    numbered: 3
     chapters:
     - file: 2_data_analysis/21_introduction
     - file: 2_data_analysis/22_data_acquisition
