@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Tuesday, February 15th 2022, 9:32:40 am                                               #
-# Modified : Tuesday, February 15th 2022, 5:07:43 pm                                               #
+# Modified : Wednesday, February 16th 2022, 7:14:29 am                                             #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -39,13 +39,16 @@ class Extractor:
         destination (str): The destination directory
     """
 
-    def __init__(self, source: str, destination: str) -> None:
+    def __init__(self) -> None:
+
+        self._source = None
+        self._destination = None
+
+    def execute(self, source: str, destination: str) -> None:
+        """Extracts and stores the data, then pushes filepaths to xCom. """
 
         self._source = source
         self._destination = destination
-
-    def execute(self) -> None:
-        """Extracts and stores the data, then pushes filepaths to xCom. """
 
         if not self._exists():
             # Recursively extract data and store in destination directory
