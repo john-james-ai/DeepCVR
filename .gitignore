@@ -8,6 +8,7 @@ __pycache__/
 # Notes and internal documents
 notes/*.*
 */_build/
+*/lab/
 
 # Distribution / packaging
 .Python
