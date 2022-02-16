@@ -1,4 +1,6 @@
-# Book settings
+# ================================================================================================ #
+#                                 JUPYTERBOOK CONFIG                                               #
+# ================================================================================================ #
 # Learn more at https://jupyterbook.org/customize/config.html
 
 title: "DeepCVR:\nDeep Learning for Conversion Rate Prediction"
@@ -7,26 +9,30 @@ copyright: "2022"
 logo: "images/dl.jpg"
 only_build_toc_files: true
 
-# Force re-execution of notebooks on each build.
+# ================================================================================================ #
+#                                        EXECUTE                                                   #
+# ================================================================================================ #
 # See https://jupyterbook.org/content/execute.html
 execute:
   execute_notebooks: force
   exclude_patterns: ['*.py']
 
-# Define the name of the latex output file for PDF builds
+# ================================================================================================ #
+#                                        LATEX                                                     #
+# ================================================================================================ #
 latex:
   latex_documents:
     targetname: deepcvr.tex
 
-# Add a bibtex file so that we can create citations
+# ================================================================================================ #
+#                                       BIBTEX                                                     #
+# ================================================================================================ #
 bibtex_bibfiles:
   - references.bib
 
-# Add GitHub buttons to your book
-# See https://jupyterbook.org/customize/config.html#add-a-link-to-your-repository
-
-#######################################################################################
-# HTML-specific settings
+# ================================================================================================ #
+#                                       HTML                                                       #
+# ================================================================================================ #
 html:
   favicon                   : "images/neural.png"  # A path to a favicon image
   use_multitoc_numbering    : false # Whether to continue numbering over multiple TOC sections.
@@ -38,8 +44,9 @@ html:
   google_analytics_id       : ""  # A GA id that can be used to track book views.
   home_page_in_navbar       : true  # Whether to include your home page in the left Navigation Bar
 
-#######################################################################################
-# Launch button settings
+# ================================================================================================ #
+#                                  LAUNCH BUTTONS                                                  #
+# ================================================================================================ #
 launch_buttons:
   notebook_interface        : classic  # The interface interactive links will activate ["classic", "jupyterlab"]
   binderhub_url             : https://mybinder.org  # The URL of the BinderHub (e.g., https://mybinder.org)
@@ -47,8 +54,20 @@ launch_buttons:
   thebe                     : false  # Add a thebe button to pages (requires the repository to run on Binder)
   colab_url: "https://colab.research.google.com" # The URL of Google Colab
 
-# Information about where the book exists on the web
+# ================================================================================================ #
+#                                    REPOSITORY                                                    #
+# ================================================================================================ #
 repository:
-  url: https://john-james-ai.github.io/DeepCVR/  # Online location of your book
+  url: https://github.com/john-james-ai/DeepCVR  # Online location of your book
   path_to_book: jbook  # Optional path to your book, relative to the repository root
   branch: master  # Which branch of the repository should be used when creating links (optional)
+
+# ================================================================================================ #
+#                                  SPHINX EXTRAS                                                   #
+# ================================================================================================ #
+shinx:
+  extra_extensions:
+    - sphinx_click.ext
+    - sphinx_inline_tabs
+    - sphinx_tabs.tabs
+    - sphinx_panels
