@@ -5,6 +5,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Credentials
+**/credentials.*
+
 # Notes and internal documents
 notes/*.*
 */_build/

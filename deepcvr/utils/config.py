@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, February 14th 2022, 1:25:40 pm                                                #
-# Modified : Monday, February 14th 2022, 5:52:27 pm                                                #
+# Modified : Friday, February 25th 2022, 3:25:35 pm                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -45,33 +45,54 @@ class Config(ABC):
 # ---------------------------------------------------------------------------- #
 
 
-class Taobao(Config):
-    """Encapsulates the Taobao Labs data source configuration.
+class S3Config(Config):
+    """Encapsulates the Amazon S3 Credentials and Configuration """
 
-    Args:
-        config_filepath (str): A string containing the path
-        to the YAML configuration file.
-
-    """
-
-    __filepath = "config/data.yaml"
+    __filepath = "config/credentials.yaml"
 
     def __init__(self) -> None:
-        super(Taobao, self).__init__()
-        self._config = self.load_config(Taobao.__filepath)
-
-    def get_train_filepath(self, stage: str = None) -> str:
-        if stage == "raw":
-            return self._config["raw_train"]
-        else:
-            return self._config["train"]
-
-    def get_test_filepath(self, stage: str = None) -> str:
-        if stage == "raw":
-            return self._config["raw_test"]
-        else:
-            return self._config["test"]
+        super(S3Config, self).__init__()
+        self._config = self.load_config(S3Config.__filepath)["amazon"]
 
     @property
-    def destination(self) -> str:
-        return self._config["destination"]
+    def key(self) -> str:
+        return self._config["aws_access_key_id"]
+
+    @property
+    def secret(self) -> str:
+        return self._config["aws_secret_access_key"]
+
+
+# ---------------------------------------------------------------------------- #
+class AirflowBackendConfig(Config):
+    """Encapsulates the connection parameters for the Airflow backend database """
+
+    __filepath = "config/credentials.yaml"
+
+    def __init__(self) -> None:
+        super(AirflowBackendConfig, self).__init__()
+        self._config = self.load_config(AirflowBackendConfig.__filepath)["airflow"]
+
+    @property
+    def user(self) -> str:
+        return self._config["user"]
+
+    @property
+    def password(self) -> str:
+        return self._config["password"]
+
+    @property
+    def host(self) -> str:
+        return self._config["host"]
+
+    @property
+    def port(self) -> str:
+        return self._config["port"]
+
+    @property
+    def dbname(self) -> str:
+        return self._config["dbname"]
+
+    @property
+    def string(self) -> str:
+        return self._config["string"]

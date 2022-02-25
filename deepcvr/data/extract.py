@@ -3,15 +3,15 @@
 # ================================================================================================ #
 # Project  : DeepCVR: Deep Learning for Conversion Rate Prediction                                 #
 # Version  : 0.1.0                                                                                 #
-# File     : /extract.py                                                                           #
+# File     : /extractor.py                                                                         #
 # Language : Python 3.10.2                                                                         #
 # ------------------------------------------------------------------------------------------------ #
 # Author   : John James                                                                            #
 # Email    : john.james.ai.studio@gmail.com                                                        #
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
-# Created  : Tuesday, February 15th 2022, 9:32:40 am                                               #
-# Modified : Wednesday, February 16th 2022, 7:14:29 am                                             #
+# Created  : Monday, February 14th 2022, 12:32:13 pm                                               #
+# Modified : Friday, February 25th 2022, 4:01:42 pm                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -19,89 +19,104 @@
 # ================================================================================================ #
 #%%
 import os
-import tarfile
-import tempfile
+import boto3
 import logging
-import shutil
+import progressbar
+from airflow.models.baseoperator import BaseOperator
+from botocore.exceptions import NoCredentialsError
+
+from deepcvr.utils.config import S3Config
 
 # ------------------------------------------------------------------------------------------------ #
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------------------------------------ #
 
 
-class Extractor:
+class S3Downloader(BaseOperator):
+    """Download operator for Amazon S3 Resources
+
+    Args:
+        bucket (str): The name of the S3 bucket
+        destination (str): Director to which all resources are to be downloaded
+    """
+
+    def __init__(self, bucket: str, destination: str, **kwargs) -> None:
+        self._bucket = bucket
+        self._destination = destination
+        config = S3Config()
+        self._s3 = boto3.client(
+            "s3", aws_access_key_id=config.key, aws_secret_access_key=config.secret
+        )
+        self._progressbar = None
+
+    def execute(self, context=None) -> None:
+
+        object_keys = self._list_bucket_contents()
+
+        for object_key in object_keys:
+            self._download(object_key)
+
+    def _list_bucket_contents(self) -> list:
+        """Returns a list of objects in the designated bucket"""
+        objects = []
+        bucket = self._s3.Bucket(self._bucket)
+        for object in bucket.objects.all():
+            objects.append(object.key)
+        return objects
+
+    def _download(self, object_key: str) -> None:
+        """Downloads object designated by the object key"""
+
+        response = self._s3.head_object(Bucket=self._bucket, Key=object_key)
+        size = response["ContentLength"]
+
+        self._progressbar = progressbar.progressbar.ProgressBar(maxval=size)
+        self._progressbar.start()
+
+        filepath = os.path.join(self._destination, object_key)
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        try:
+            self._s3.download_file(
+                self._bucket, object_key, filepath, Callback=self._download_callback
+            )
+            logger.info("Download of {} Complete!".format(object_key))
+        except FileNotFoundError:
+            msg = "Filepath: {} not found".format(filepath)
+            raise FileNotFoundError(msg)
+        except NoCredentialsError:
+            msg = "Credentials not available for {} bucket".format(self._bucket)
+            raise NoCredentialsError(msg)
+
+    def _download_callback(self, size):
+        self._progressbar.update(self._progressbar.currval + size)
+
+
+# ------------------------------------------------------------------------------------------------ #
+
+
+class ExtractOperator(BaseOperator):
     """Decompresses a gzip archive, stores the raw data and pushes the filepaths to xCom
 
     Args:
         source (str): The source filepath
         destination (str): The destination directory
+        kwargs (dict): Default parameters
     """
 
-    def __init__(self) -> None:
-
-        self._source = None
-        self._destination = None
-
-    def execute(self, source: str, destination: str) -> None:
-        """Extracts and stores the data, then pushes filepaths to xCom. """
-
+    def __init__(self, source: str, destination: str, **kwargs) -> None:
+        super(ExtractOperator, self).__init__(**kwargs)
         self._source = source
         self._destination = destination
 
-        if not self._exists():
-            # Recursively extract data and store in destination directory
-            self._extract(self._source)
+    def execute(self, context=None) -> None:
+        """Extracts and stores the data, then pushes filepaths to xCom. """
+        from deepcvr.data.extract import Extractor
 
-        # Extract filepaths for all data downloaded and extracted
-        filepaths = self._get_filepaths()
+        extractor = Extractor(source=self._source, destination=self._destination)
+        filepaths = extractor.execute()
 
-        return filepaths
-
-    def _exists(self) -> bool:
-        """Checks destination directory and returns True if not empty. False otherwise."""
-
-        return len(os.listdir(self._destination)) > 0
-
-    def _extract(self, filepath: str) -> None:
-        """Extracts the data and returns the extracted filepaths"""
-
-        if tarfile.is_tarfile(filepath):
-            with tempfile.TemporaryDirectory() as tempdirname:
-                data = tarfile.open(filepath)
-                for member in data.getmembers():
-                    # If the file already exists, skip this step
-                    filepath = os.path.join(tempdirname, member.name)
-                    data.extract(member, tempdirname)
-                    return self._extract(filepath)
-        else:
-            self._savefile(filepath)
-
-    def _savefile(self, filepath: str) -> None:
-        """Saves file to destination and adds name and filepath to filepaths dictionary
-
-        Args:
-            filepath (str): the path to the extracted file in the temp directory
-        """
-
-        # Create destination filepath and move the file
-        destination = os.path.join(self._destination, os.path.basename(filepath))
-        os.makedirs(os.path.dirname(destination), exist_ok=True)
-        shutil.move(filepath, destination)
-
-    def _get_filepaths(self) -> dict:
-        """Creates a dictionary of destination file paths."""
-        filepaths = {}
-
-        filenames = os.listdir(self._destination)
-        if len(filenames) > 0:
-            for filename in filenames:
-                filepath = os.path.join(self._destination, filename)
-                name = os.path.splitext(filename)[0]
-                filepaths[name] = filepath
-        else:
-            msg = "Destination directory is empty"
-            raise FileNotFoundError(msg)
-
-        return filepaths
+        # Push the extracted filepaths to xCom
+        ti = context["ti"]
+        ti.xcom_push("filepaths", filepaths)

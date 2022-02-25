@@ -3,23 +3,24 @@
 # ================================================================================================ #
 # Project  : DeepCVR: Deep Learning for Conversion Rate Prediction                                 #
 # Version  : 0.1.0                                                                                 #
-# File     : /extractor.py                                                                         #
-# Language : Python 3.10.2                                                                         #
+# File     : /backend.py                                                                           #
+# Language : Python 3.8.12                                                                         #
 # ------------------------------------------------------------------------------------------------ #
 # Author   : John James                                                                            #
 # Email    : john.james.ai.studio@gmail.com                                                        #
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
-# Created  : Monday, February 14th 2022, 12:32:13 pm                                               #
-# Modified : Tuesday, February 15th 2022, 9:40:57 am                                               #
+# Created  : Tuesday, February 22nd 2022, 6:28:24 am                                               #
+# Modified : Tuesday, February 22nd 2022, 9:01:38 am                                               #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
 # Copyright: (c) 2022 Bryant St. Labs                                                              #
 # ================================================================================================ #
-#%%
-import logging
+from sqlalchemy import create_engine
 from airflow.models.baseoperator import BaseOperator
+import logging
+from deepcvr.utils.config import AirflowBackendConfig
 
 # ------------------------------------------------------------------------------------------------ #
 logging.basicConfig(level=logging.DEBUG)
@@ -28,27 +29,28 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------------------------ #
 
 
-class ExtractOperator(BaseOperator):
-    """Decompresses a gzip archive, stores the raw data and pushes the filepaths to xCom
+class MySQLBackend(BaseOperator):
+    """Establishes a MySQL Database backend for Airflow metadata"""
 
-    Args:
-        source (str): The source filepath
-        destination (str): The destination directory
-        kwargs (dict): Default parameters
-    """
-
-    def __init__(self, source: str, destination: str, **kwargs) -> None:
-        super(ExtractOperator, self).__init__(**kwargs)
-        self._source = source
-        self._destination = destination
+    def __init__(self, config: AirflowBackendConfig, **kwargs) -> None:
+        super(MySQLBackend, self).__init__(**kwargs)
+        self._config = config
 
     def execute(self, context) -> None:
-        """Extracts and stores the data, then pushes filepaths to xCom. """
-        from deepcvr.data.extract import Extractor
+        connection_string = self._config.string
+        engine = create_engine(connection_string)
+        conn = engine.connect()
+        create_db_query = "CREATE DATABASE IF NOT EXISTS airflow_db \
+            CHARACTER SET utf8 COLLATE utf8mb4_unicode_ci;"
+        drop_user_query = "DROP USER IF EXISTS 'airflow_user'@'localhost"
+        create_user_query = "CREATE USER 'airflow_user' IDENTIFIED BY 'airfl0w_pwd';"
+        privileges_query = "GRANT ALL PRIVILEGES ON airflow_db.* TO 'airflow_user';"
 
-        extractor = Extractor(source=self._source, destination=self._destination)
-        filepaths = extractor.execute()
-
-        # Push the extracted filepaths to xCom
-        ti = context["ti"]
-        ti.xcom_push("filepaths", filepaths)
+        try:
+            conn.execute(create_db_query)
+            conn.execute(drop_user_query)
+            conn.execute(create_user_query)
+            conn.execute(privileges_query)
+        except Exception as e:
+            logger.error(e)
+            raise Exception(e)
