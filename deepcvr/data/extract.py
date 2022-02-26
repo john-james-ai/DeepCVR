@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 6:03:54 pm                                                #
-# Modified : Friday, February 25th 2022, 9:52:12 pm                                                #
+# Modified : Friday, February 25th 2022, 11:59:23 pm                                               #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -22,7 +22,6 @@ import os
 import tarfile
 import tempfile
 import logging
-import inspect
 
 # ------------------------------------------------------------------------------------------------ #
 logging.basicConfig(level=logging.DEBUG)
@@ -48,21 +47,14 @@ class Extractor:
 
     def execute(self) -> None:
         """Extracts and stores the data, then pushes filepaths to xCom."""
-        logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
         logger.debug("\tSource: {}\tDestination: {}".format(self._source, self._destination))
 
         with tempfile.TemporaryDirectory() as tempdir:
             # Recursively extract data and store in destination directory
             self._extract(source=self._source, destination=tempdir)
 
-        logger.info(
-            "\tSuccessfully completed {} {}".format(self.__class__.__name__, inspect.stack()[0][3])
-        )
-
     def _extract(self, source: str, destination: str) -> None:
         """Extracts the data and returns the extracted filepaths"""
-
-        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
         logger.debug("\t\tOpening {}".format(source))
         data = tarfile.open(source)
@@ -78,10 +70,6 @@ class Extractor:
             else:
                 logger.debug("\t\tExtracting {} to {}".format(member.name, destination))
                 data.extract(member, destination)  # Extract to tempdirectory
-
-        logger.debug(
-            "\tSuccessfully completed {} {}".format(self.__class__.__name__, inspect.stack()[0][3])
-        )
 
     def _not_exists_or_force(self, member_name: str) -> bool:
         """Returns true if the file doesn't exist or force is True."""

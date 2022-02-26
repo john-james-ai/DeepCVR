@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, December 27th 2021, 2:03:27 am                                                #
-# Modified : Tuesday, February 15th 2022, 9:02:43 am                                               #
+# Modified : Friday, February 25th 2022, 10:50:43 pm                                               #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -26,7 +26,7 @@ from typing import Union
 
 
 class BaseSampler(ABC):
-    """Abstract Base Class for Sampler Classes """
+    """Abstract Base Class for Sampler Classes"""
 
     @abstractmethod
     def sample(self, df: pd.DataFrame) -> None:
@@ -40,7 +40,7 @@ class BaseSampler(ABC):
 
 # ------------------------------------------------------------------------------------------------ #
 class MultilabelStratifiedRandomSampling(BaseSampler):
-    """Stratified random sampling in for multilabel datasets
+    """Stratified random sampling for multilabel datasets
 
     Args:
         labels (list): List of column names that contain target labels.

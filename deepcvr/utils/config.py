@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, February 14th 2022, 1:25:40 pm                                                #
-# Modified : Friday, February 25th 2022, 3:25:35 pm                                                #
+# Modified : Saturday, February 26th 2022, 4:45:25 am                                              #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -46,7 +46,7 @@ class Config(ABC):
 
 
 class S3Config(Config):
-    """Encapsulates the Amazon S3 Credentials and Configuration """
+    """Encapsulates the Amazon S3 Credentials and Configuration"""
 
     __filepath = "config/credentials.yaml"
 
@@ -64,8 +64,35 @@ class S3Config(Config):
 
 
 # ---------------------------------------------------------------------------- #
+class MySQLConfig(Config):
+    """Encapsulates credentials for a MySQL user"""
+
+    __filepath = "config/credentials.yaml"
+
+    def __init__(self, user: str = "mysql") -> None:
+        super(MySQLConfig, self).__init__()
+        self._config = self.load_config(MySQLConfig.__filepath)[user]
+
+    @property
+    def host(self) -> str:
+        return self._config["host"]
+
+    @property
+    def user(self) -> str:
+        return self._config["user"]
+
+    @property
+    def password(self) -> str:
+        return self._config["password"]
+
+    @property
+    def dbname(self) -> str:
+        return self._config["dbname"]
+
+
+# ---------------------------------------------------------------------------- #
 class AirflowBackendConfig(Config):
-    """Encapsulates the connection parameters for the Airflow backend database """
+    """Encapsulates the connection parameters for the Airflow backend database"""
 
     __filepath = "config/credentials.yaml"
 

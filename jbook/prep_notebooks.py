@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Tuesday, February 15th 2022, 5:11:34 pm                                               #
-# Modified : Tuesday, February 15th 2022, 10:28:40 pm                                              #
+# Modified : Friday, February 25th 2022, 11:53:58 pm                                               #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -52,6 +52,7 @@ def prepare_notebooks():
         "# Imports": "hide-cell",  # Removes the 'module not found' error from output
         "# GLUE": "remove-cell",  # Removes the cell (input/output) which declares glue variables
         "# HIDE-INPUT": "hide-input",  # Collapse input with toggle to display
+        "# Constants": "hide-input",  # Collapses input with toggle to display
         "# HIDE-OUTPUT": "hide-output",  # Collapse output with toggle to display
         "# HIDE-CELL": "hide-cell",  # Collapse input and output with toggle to display
         "# REMOVE-INPUT": "remove-input",  # Removes input, no toggle option
