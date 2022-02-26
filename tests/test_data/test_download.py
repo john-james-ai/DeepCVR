@@ -11,18 +11,19 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 4:08:17 pm                                                #
-# Modified : Friday, February 25th 2022, 4:16:44 pm                                                #
+# Modified : Friday, February 25th 2022, 6:01:38 pm                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
 # Copyright: (c) 2022 Bryant St. Labs                                                              #
 # ================================================================================================ #
+
 #%%
 import pytest
 import logging
 import inspect
 
-from deepcvr.data.extract import S3Downloader
+from deepcvr.data.download import S3Downloader
 
 # ---------------------------------------------------------------------------- #
 logging.basicConfig(level=logging.INFO)
@@ -31,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.mark.download
-class S3DownloadTests:
+class TestS3Download:
     def test_download(self) -> None:
         logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
@@ -39,11 +40,12 @@ class S3DownloadTests:
         downloader.execute()
 
         logger.info(
-            "\tSuccessfully completed {} {}".format(self.__class__.__name__, inspect.stack[0][3])
+            "\tSuccessfully completed {} {}".format(self.__class__.__name__, inspect.stack()[0][3])
         )
 
 
 if __name__ == "__main__":
 
-    t = S3DownloadTests()
+    t = TestS3Download()
     t.test_download()
+#%%
