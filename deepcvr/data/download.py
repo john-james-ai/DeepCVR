@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, February 14th 2022, 12:32:13 pm                                               #
-# Modified : Friday, February 25th 2022, 11:38:41 pm                                               #
+# Modified : Sunday, February 27th 2022, 8:40:14 am                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -37,17 +37,20 @@ class S3Downloader:
     """Download operator for Amazon S3 Resources
 
     Args:
+        credentials (S3Config): An S3 configuration object containing access credentials.
         bucket (str): The name of the S3 bucket
         destination (str): Director to which all resources are to be downloaded
+        force (bool): Determines whether to force download if local version exists.
     """
 
-    def __init__(self, bucket: str, destination: str, force: bool = False) -> None:
+    def __init__(
+        self, credentials: S3Config, bucket: str, destination: str, force: bool = False
+    ) -> None:
         self._bucket = bucket
         self._destination = destination
         self._force = force
-        config = S3Config()
         self._s3 = boto3.client(
-            "s3", aws_access_key_id=config.key, aws_secret_access_key=config.secret
+            "s3", aws_access_key_id=credentials.key, aws_secret_access_key=credentials.secret
         )
         self._progressbar = None
 

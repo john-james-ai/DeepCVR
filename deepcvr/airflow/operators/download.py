@@ -3,54 +3,45 @@
 # ================================================================================================ #
 # Project  : DeepCVR: Deep Learning for Conversion Rate Prediction                                 #
 # Version  : 0.1.0                                                                                 #
-# File     : /backend.py                                                                           #
+# File     : /download.py                                                                          #
 # Language : Python 3.8.12                                                                         #
 # ------------------------------------------------------------------------------------------------ #
 # Author   : John James                                                                            #
 # Email    : john.james.ai.studio@gmail.com                                                        #
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
-# Created  : Tuesday, February 22nd 2022, 6:28:24 am                                               #
-# Modified : Tuesday, February 22nd 2022, 9:01:38 am                                               #
+# Created  : Sunday, February 27th 2022, 8:31:48 am                                                #
+# Modified : Sunday, February 27th 2022, 8:57:24 am                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
 # Copyright: (c) 2022 Bryant St. Labs                                                              #
 # ================================================================================================ #
-from sqlalchemy import create_engine
+"""Airflow operator responsible for downloading source data from an Amazon S3 resource. """
 from airflow.models.baseoperator import BaseOperator
-import logging
-from deepcvr.utils.config import AirflowBackendConfig
-
-# ------------------------------------------------------------------------------------------------ #
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+from deepcvr.data.download import S3Downloader
+from deepcvr.utils.config import S3Config
 
 # ------------------------------------------------------------------------------------------------ #
 
 
-class MySQLBackend(BaseOperator):
-    """Establishes a MySQL Database backend for Airflow metadata"""
+class S3DownloadOperator(BaseOperator):
+    """Download operator for Amazon S3 Resources. Wraps an S3Downloader object.
 
-    def __init__(self, config: AirflowBackendConfig, **kwargs) -> None:
-        super(MySQLBackend, self).__init__(**kwargs)
-        self._config = config
+    Args:
+        credentials (S3Config): An S3 configuration object containing access credentials.
+        bucket (str): The name of the S3 bucket
+        destination (str): Director to which all resources are to be downloaded
+        force (bool): Determines whether to force download if local version exists.
+    """
+
+    def __init__(
+        self, credentials: S3Config, bucket: str, destination: str, force: bool = False, **kwargs
+    ) -> None:
+        super(S3DownloadOperator, self).__init__(**kwargs)
+        self._s3_downloader = S3Downloader(
+            credentials=credentials, bucket=bucket, destination=destination, force=force
+        )
 
     def execute(self, context) -> None:
-        connection_string = self._config.string
-        engine = create_engine(connection_string)
-        conn = engine.connect()
-        create_db_query = "CREATE DATABASE IF NOT EXISTS airflow_db \
-            CHARACTER SET utf8 COLLATE utf8mb4_unicode_ci;"
-        drop_user_query = "DROP USER IF EXISTS 'airflow_user'@'localhost"
-        create_user_query = "CREATE USER 'airflow_user' IDENTIFIED BY 'airfl0w_pwd';"
-        privileges_query = "GRANT ALL PRIVILEGES ON airflow_db.* TO 'airflow_user';"
-
-        try:
-            conn.execute(create_db_query)
-            conn.execute(drop_user_query)
-            conn.execute(create_user_query)
-            conn.execute(privileges_query)
-        except Exception as e:
-            logger.error(e)
-            raise Exception(e)
+        self._s3_downloader.execute()

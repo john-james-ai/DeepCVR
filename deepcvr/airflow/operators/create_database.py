@@ -3,59 +3,50 @@
 # ================================================================================================ #
 # Project  : DeepCVR: Deep Learning for Conversion Rate Prediction                                 #
 # Version  : 0.1.0                                                                                 #
-# File     : /test_download.py                                                                     #
+# File     : /create_db.py                                                                         #
 # Language : Python 3.8.12                                                                         #
 # ------------------------------------------------------------------------------------------------ #
 # Author   : John James                                                                            #
 # Email    : john.james.ai.studio@gmail.com                                                        #
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
-# Created  : Friday, February 25th 2022, 4:08:17 pm                                                #
-# Modified : Sunday, February 27th 2022, 9:08:33 am                                                #
+# Created  : Saturday, February 26th 2022, 8:38:34 am                                              #
+# Modified : Saturday, February 26th 2022, 10:34:56 pm                                             #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
 # Copyright: (c) 2022 Bryant St. Labs                                                              #
 # ================================================================================================ #
+from airflow.models.baseoperator import BaseOperator
 
-#%%
-import pytest
-import logging
-import inspect
-
-from deepcvr.data.database import DeepCVRDb
 from deepcvr.utils.config import MySQLConfig
+from deepcvr.data.database import DeepCVRDb
+from deepcvr.data.sql import (
+    CreateDatabaseSQL,
+    CreateImpressionsTableSQL,
+    CreateCoreFeaturesTableSQL,
+    CreateCommonFeaturesTableSQL,
+)
 
-# ---------------------------------------------------------------------------- #
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-# ---------------------------------------------------------------------------- #
+
+# ------------------------------------------------------------------------------------------------ #
 
 
-@pytest.mark.dba
-class TestDBA:
-    def test_create_db(self) -> None:
-        logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+class CreateDBOperator(BaseOperator):
+    """Operator that creates the DeepCVR Database and Tables."""
 
-        query = "CREATE DATABASE IF NOT EXISTS %s"
-        data = ("deepcvr",)
-
+    def __init__(self, **kwargs) -> None:
+        super(CreateDBOperator, self).__init__(**kwargs)
         credentials = MySQLConfig()
-        dba = DeepCVRDb(credentials=credentials)
-        dba.execute(query=query, data=data)
+        self._db = DeepCVRDb(credentials=credentials)
 
-        query = "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = %s"
-        data = ("deepcvr",)
-        dba.exists(query=query, data=data)
+    def execute(self, context):
+        """Creates the database and tables"""
+        self._db.connect()
 
-        logger.info(
-            "\tSuccessfully completed {} {}".format(self.__class__.__name__, inspect.stack()[0][3])
-        )
+        self._db.execute(CreateDatabaseSQL)
+        self._db.execute(CreateImpressionsTableSQL)
+        self._db.execute(CreateCoreFeaturesTableSQL)
+        self._db.execute(CreateCommonFeaturesTableSQL)
 
-
-if __name__ == "__main__":
-
-    t = TestDBA()
-    t.test_create_db()
-
-#%%
+        self._db.close_connection()

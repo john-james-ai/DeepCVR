@@ -3,59 +3,24 @@
 # ================================================================================================ #
 # Project  : DeepCVR: Deep Learning for Conversion Rate Prediction                                 #
 # Version  : 0.1.0                                                                                 #
-# File     : /test_download.py                                                                     #
+# File     : /test_load_dag.py                                                                     #
 # Language : Python 3.8.12                                                                         #
 # ------------------------------------------------------------------------------------------------ #
 # Author   : John James                                                                            #
 # Email    : john.james.ai.studio@gmail.com                                                        #
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
-# Created  : Friday, February 25th 2022, 4:08:17 pm                                                #
-# Modified : Sunday, February 27th 2022, 9:08:33 am                                                #
+# Created  : Sunday, February 27th 2022, 7:57:34 am                                                #
+# Modified : Sunday, February 27th 2022, 7:57:46 am                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
 # Copyright: (c) 2022 Bryant St. Labs                                                              #
 # ================================================================================================ #
-
-#%%
-import pytest
-import logging
-import inspect
-
-from deepcvr.data.database import DeepCVRDb
-from deepcvr.utils.config import MySQLConfig
-
-# ---------------------------------------------------------------------------- #
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-# ---------------------------------------------------------------------------- #
+from airflow.models import DagBag
 
 
-@pytest.mark.dba
-class TestDBA:
-    def test_create_db(self) -> None:
-        logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-
-        query = "CREATE DATABASE IF NOT EXISTS %s"
-        data = ("deepcvr",)
-
-        credentials = MySQLConfig()
-        dba = DeepCVRDb(credentials=credentials)
-        dba.execute(query=query, data=data)
-
-        query = "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = %s"
-        data = ("deepcvr",)
-        dba.exists(query=query, data=data)
-
-        logger.info(
-            "\tSuccessfully completed {} {}".format(self.__class__.__name__, inspect.stack()[0][3])
-        )
-
-
-if __name__ == "__main__":
-
-    t = TestDBA()
-    t.test_create_db()
-
-#%%
+def test_dags_load_with_no_errors():
+    dag_bag = DagBag(include_examples=False)
+    dag_bag.process_file("common_api_workflows.py")
+    assert len(dag_bag.import_errors) == 0

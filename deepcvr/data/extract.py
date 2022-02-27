@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 6:03:54 pm                                                #
-# Modified : Friday, February 25th 2022, 11:59:23 pm                                               #
+# Modified : Saturday, February 26th 2022, 2:43:20 pm                                              #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -49,9 +49,13 @@ class Extractor:
         """Extracts and stores the data, then pushes filepaths to xCom."""
         logger.debug("\tSource: {}\tDestination: {}".format(self._source, self._destination))
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            # Recursively extract data and store in destination directory
-            self._extract(source=self._source, destination=tempdir)
+        # If all 4 raw files exist, it is assumed that the data have been downloaded
+        n_files = len(os.listdir(self._destination))
+        if n_files < 4:
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                # Recursively extract data and store in destination directory
+                self._extract(source=self._source, destination=tempdir)
 
     def _extract(self, source: str, destination: str) -> None:
         """Extracts the data and returns the extracted filepaths"""

@@ -1,0 +1,1 @@
+export AIRFLOW_HOME=/home/john/projects/DeepCVR/deepcvr/airflow/

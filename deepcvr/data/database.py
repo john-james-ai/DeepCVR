@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 1:28:55 am                                              #
-# Modified : Saturday, February 26th 2022, 8:23:10 am                                              #
+# Modified : Saturday, February 26th 2022, 1:06:26 pm                                              #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -22,11 +22,6 @@ import logging
 import pymysql
 import inspect
 from deepcvr.utils.config import MySQLConfig
-from deepcvr.data.sql.create_db import (
-    CreateDatabase,
-    CreateImpressionsTable,
-    CreateFeaturesTable,
-)
 
 # ------------------------------------------------------------------------------------------------ #
 logging.basicConfig(level=logging.DEBUG)
@@ -34,7 +29,7 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------------------------ #
 
 
-class Builder:
+class DeepCVRDb:
     def __init__(self, credentials: MySQLConfig) -> None:
 
         self._credentials = credentials
@@ -56,7 +51,7 @@ class Builder:
 
         logger.debug("\tCompleting {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
-    def _execute(self, query) -> bool:
+    def execute(self, query) -> bool:
         """Executes DDL queries that return no value"""
 
         logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
@@ -73,7 +68,7 @@ class Builder:
 
         except pymysql.MySQLError as e:
             logger.error(e)
-            self.close_connection()
+            self.disconnect()
             raise Exception(e)
 
         finally:
@@ -81,23 +76,5 @@ class Builder:
 
         logger.debug("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
-    def execute(self, context=None) -> bool:
-        """Creates a database and tables."""
-
-        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-
-        self.connect()
-
-        self._execute(CreateDatabase)
-        self._execute(CreateImpressionsTable)
-        self._execute(CreateFeaturesTable)
-
-        self.close_connection()
-
-        logger.debug("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-
-    def close_connection(self) -> None:
+    def disconnect(self) -> None:
         self._con.close()
-
-
-# %%
