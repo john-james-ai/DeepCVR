@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Sunday, February 27th 2022, 8:54:52 am                                                #
-# Modified : Sunday, February 27th 2022, 9:07:34 am                                                #
+# Modified : Sunday, February 27th 2022, 9:35:18 am                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -60,9 +60,9 @@ def dag():
     return dag
 
 
-@pytest.mark.s3downloader
+@pytest.mark.s3
 def test_s3_download_operator_execute_no_trigger(dag, reset_db):
-    reset_db()
+    reset_db
     dagrun = dag.create_dagrun(
         state=DagRunState.RUNNING,
         execution_date=DATA_INTERVAL_START,
