@@ -3,43 +3,39 @@
 # ================================================================================================ #
 # Project  : DeepCVR: Deep Learning for Conversion Rate Prediction                                 #
 # Version  : 0.1.0                                                                                 #
-# File     : /__init__.py                                                                          #
+# File     : /download.py                                                                          #
 # Language : Python 3.8.12                                                                         #
 # ------------------------------------------------------------------------------------------------ #
 # Author   : John James                                                                            #
 # Email    : john.james.ai.studio@gmail.com                                                        #
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
-# Created  : Tuesday, February 22nd 2022, 5:37:23 am                                               #
-# Modified : Sunday, February 27th 2022, 10:16:31 am                                               #
+# Created  : Sunday, February 27th 2022, 8:31:48 am                                                #
+# Modified : Sunday, February 27th 2022, 9:51:17 am                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
 # Copyright: (c) 2022 Bryant St. Labs                                                              #
 # ================================================================================================ #
-"""Contants related to the data representation."""
-# Database table columns
-COLS_IMPRESSIONS_TBL = [
-    "sample_id",
-    "click_label",
-    "conversion_label",
-    "num_core_features",
-    "common_features_index",
-]
-COLS_CORE_FEATURES_TBL = ["sample_id", "feature_name", "feature_id", "feature_value"]
-COLS_COMMON_FEATURES_TBL = ["common_features_index", "feature_name", "feature_id", "feature_value"]
+"""Airflow operator responsible for downloading source data from an Amazon S3 resource. """
+from airflow.models.baseoperator import BaseOperator
+from deepcvr.data.extract import Extractor
 
-# Dataframe columns
-COLS_CORE_DATASET = [
-    "sample_id",
-    "click_label",
-    "conversion_label",
-    "common_features_index",
-    "num_core_features",
-    "features_list",
-]
-COLS_COMMON_FEATURES_DATASET = [
-    "common_features_index",
-    "num_common_features",
-    "features_list",
-]
+# ------------------------------------------------------------------------------------------------ #
+
+
+class GZIPExtractOperator(BaseOperator):
+    """GZIP Extract Operator
+
+    Args:
+        source (str): The filepath to the source file to be decompressed
+        destination (str): The destination directory into which data shall be stored.
+        force (bool): Forces extraction even when files already exist.
+    """
+
+    def __init__(self, source: str, destination: str, force: bool = False, **kwargs) -> None:
+        super(GZIPExtractOperator, self).__init__(**kwargs)
+        self._extractor = Extractor(source=source, destination=destination, force=force)
+
+    def execute(self, context) -> None:
+        self._extractor.execute()

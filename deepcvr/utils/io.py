@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 6:41:17 pm                                              #
-# Modified : Saturday, February 26th 2022, 9:58:21 pm                                              #
+# Modified : Sunday, February 27th 2022, 5:15:32 pm                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -27,10 +27,12 @@ from tqdm import tqdm
 # ------------------------------------------------------------------------------------------------ #
 
 
-def read_csv(
+def load_csv(
     filepath: str,
     sep: str = ",",
-    header=None,
+    header: list = None,
+    names: list = None,
+    usecols: list = None,
     index_col=False,
     chunksize=None,
 ) -> pd.DataFrame:
@@ -44,9 +46,11 @@ def read_csv(
 
     with tqdm(total=rows, desc="Rows read: ") as bar:
         for chunk in pd.read_csv(
-            filepath=filepath,
+            filepath,
             sep=sep,
             header=header,
+            names=names,
+            usecols=usecols,
             index_col=index_col,
             chunksize=chunksize,
         ):
@@ -59,26 +63,26 @@ def read_csv(
 
 
 # ------------------------------------------------------------------------------------------------ #
-def write_csv(
+def save_csv(
     data: pd.DataFrame,
     filepath: str,
     index_label: str = None,
     sep: str = ",",
     header: bool = True,
-    index: bool = True,
+    index: bool = False,
     chunksize=50000,
 ) -> pd.DataFrame:
     """Writes a large DataFrame to CSV file with progress monitor."""
 
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
-    n_chunks = math.ceil(data.memory_usage(deep=True) / chunksize)
+    n_chunks = math.ceil(data.memory_usage(deep=True).sum() / chunksize)
     chunks = np.array_split(data.index, n_chunks)
 
     for chunk, subset in enumerate(tqdm(chunks)):
         if chunk == 0:  # Write in 'w' mode
             data.loc[subset].to_csv(
-                filepath=filepath,
+                filepath,
                 sep=sep,
                 header=header,
                 index_label=index_label,
@@ -87,7 +91,7 @@ def write_csv(
             )
         else:
             data.loc[subset].to_csv(
-                filepath=filepath,
+                filepath,
                 sep=sep,
                 index_label=index_label,
                 header=None,
