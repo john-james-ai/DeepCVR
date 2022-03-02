@@ -10,5 +10,4 @@ kernelspec:
   language: python
   name: python3
 ---
-(section_11_digital_advertising)=
-# Digital Advertising
+# Study Goals

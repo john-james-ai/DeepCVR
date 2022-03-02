@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 1:28:55 am                                              #
-# Modified : Saturday, February 26th 2022, 1:06:26 pm                                              #
+# Modified : Sunday, February 27th 2022, 7:07:21 pm                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -22,6 +22,7 @@ import logging
 import pymysql
 import inspect
 from deepcvr.utils.config import MySQLConfig
+from deepcvr.data.sql import Query
 
 # ------------------------------------------------------------------------------------------------ #
 logging.basicConfig(level=logging.DEBUG)
@@ -51,7 +52,7 @@ class DeepCVRDb:
 
         logger.debug("\tCompleting {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
-    def execute(self, query) -> bool:
+    def execute(self, query: Query) -> bool:
         """Executes DDL queries that return no value"""
 
         logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))

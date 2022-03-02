@@ -6,16 +6,18 @@ parts:
   - caption: 1. Introduction
     numbered: 3
     chapters:
-    - file: 1_introduction/11_digital_advertising
-  - caption: 2. Data Analysis
+    - file: 1_introduction/1_digital_advertising
+    - file: 1_introduction/2_conversion_rate_prediction
+    - file: 1_introduction/3_solution_landscape
+    - file: 1_introduction/4_study_goals
+  - caption: 2. Data
     numbered: 3
     chapters:
-    - file: 2_data_analysis/21_introduction
-    - file: 2_data_analysis/22_data_acquisition
-    - file: 2_data_analysis/23_data_profile
-    - file: 2_data_analysis/24_data_preprocessing
-    - file: 2_data_analysis/25_exploratory_data_analysis
-    - file: 2_data_analysis/26_summary
+    - file: 2_data/1_introduction
+    - file: 2_data/2_data_acquisition
+    - file: 2_data/3_data_exploration
+    - file: 2_data/4_data_preparation
+    - file: 2_data/5_summary
   - caption: References
     chapters:
     - file: 99_references

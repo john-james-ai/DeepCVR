@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 5:50:10 am                                              #
-# Modified : Saturday, February 26th 2022, 9:07:47 pm                                              #
+# Modified : Sunday, February 27th 2022, 8:13:39 pm                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -31,6 +31,9 @@ class Query(ABC):
     data: tuple = ()
 
 
+# ------------------------------------------------------------------------------------------------ #
+#                                       DEEPCVR DATABASE                                           #
+# ------------------------------------------------------------------------------------------------ #
 @dataclass
 class CreateDatabaseSQL(Query):
     name: str = "create_deepcvr_database"
@@ -96,3 +99,28 @@ class DatabaseExistsSQL(Query):
     sql: str = (
         """SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = deepcvr";"""
     )
+
+
+# ------------------------------------------------------------------------------------------------ #
+#                                   AIRFLOW DATABASE BACKEND                                       #
+# ------------------------------------------------------------------------------------------------ #
+@dataclass
+class CreateAirflowDatabase(Query):
+    name: str = "create_airflow_mysql_database"
+    desc: str = "Create Airflow MYSQL Database"
+    sql: str = """CREATE DATABASE IF NOT EXISTS \
+        airflow_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"""
+
+
+@dataclass
+class CreateAirflowUser(Query):
+    name: str = "create_airflow_mysql_user"
+    desc: str = "Create Airflow MYSQL User"
+    sql: str = """CREATE USER 'airflow_user' IDENTIFIED BY 'airflow_pass';"""
+
+
+@dataclass
+class GrantAirflowUser(Query):
+    name: str = "grant_airflow_mysql_user"
+    desc: str = "Grant Airflow MYSQL User"
+    sql: str = """GRANT ALL PRIVILEGES ON airflow_db.* TO 'airflow_user';"""

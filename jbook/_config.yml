@@ -3,7 +3,11 @@
 # ================================================================================================ #
 # Learn more at https://jupyterbook.org/customize/config.html
 
-title: "DeepCVR:\nDeep Learning for Conversion Rate Prediction"
+title: |
+  <p>
+  DeepCVR<br>
+  Deep Learning for Conversion Rate Prediction
+  </p>
 author: John James
 copyright: "2022"
 logo: "images/dl.jpg"
