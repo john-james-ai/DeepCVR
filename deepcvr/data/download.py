@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, February 14th 2022, 12:32:13 pm                                               #
-# Modified : Sunday, February 27th 2022, 8:40:14 am                                                #
+# Modified : Friday, March 4th 2022, 12:15:56 pm                                                   #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -24,8 +24,6 @@ import logging
 import progressbar
 from botocore.exceptions import NoCredentialsError
 
-from deepcvr.utils.config import S3Config
-
 # ------------------------------------------------------------------------------------------------ #
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -34,29 +32,43 @@ logger = logging.getLogger(__name__)
 
 
 class S3Downloader:
-    """Download operator for Amazon S3 Resources
+    """Download operator for Amazon S3 Resources.
 
     Args:
-        credentials (S3Config): An S3 configuration object containing access credentials.
-        bucket (str): The name of the S3 bucket
+        bucket (str): S3 Bucket
+        key: The S3 aws_access_key_id
+        password: The S3 aws_secret_access_key
         destination (str): Director to which all resources are to be downloaded
+        objects (list): list of objects to download. If None, all objects in bucket are downloaded.
+            Default None.
         force (bool): Determines whether to force download if local version exists.
     """
 
     def __init__(
-        self, credentials: S3Config, bucket: str, destination: str, force: bool = False
+        self,
+        bucket: str,
+        key: str,
+        password: str,
+        destination: str,
+        objects: list = None,
+        force: bool = False,
     ) -> None:
         self._bucket = bucket
+        self._key = key
+        self._password = password
         self._destination = destination
+        self._objects = objects
         self._force = force
-        self._s3 = boto3.client(
-            "s3", aws_access_key_id=credentials.key, aws_secret_access_key=credentials.secret
-        )
+
         self._progressbar = None
 
     def execute(self) -> None:
 
-        object_keys = self._list_bucket_contents()
+        object_keys = self._objects if self._objects else self._list_bucket_contents()
+
+        self._s3 = boto3.client(
+            "s3", aws_access_key_id=self._key, aws_secret_access_key=self._password
+        )
 
         for object_key in object_keys:
             destination = os.path.join(self._destination, object_key)
@@ -71,7 +83,7 @@ class S3Downloader:
         """Returns a list of objects in the designated bucket"""
         objects = []
         s3 = boto3.resource("s3")
-        bucket = s3.Bucket(self._bucket)
+        bucket = s3.Bucket(self._config.bucket)
         for object in bucket.objects.all():
             objects.append(object.key)
         return objects
@@ -79,7 +91,7 @@ class S3Downloader:
     def _download(self, object_key: str, destination: str) -> None:
         """Downloads object designated by the object ke if not exists or force is True"""
 
-        response = self._s3.head_object(Bucket=self._bucket, Key=object_key)
+        response = self._s3.head_object(Bucket=self._config.bucket, Key=object_key)
         size = response["ContentLength"]
 
         self._progressbar = progressbar.progressbar.ProgressBar(maxval=size)
@@ -88,11 +100,11 @@ class S3Downloader:
         os.makedirs(os.path.dirname(destination), exist_ok=True)
         try:
             self._s3.download_file(
-                self._bucket, object_key, destination, Callback=self._download_callback
+                self._config.bucket, object_key, destination, Callback=self._download_callback
             )
             logger.info("Download of {} Complete!".format(object_key))
         except NoCredentialsError:
-            msg = "Credentials not available for {} bucket".format(self._bucket)
+            msg = "Credentials not available for {} bucket".format(self._config.bucket)
             raise NoCredentialsError(msg)
 
     def _download_callback(self, size):

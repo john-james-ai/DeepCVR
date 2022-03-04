@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Sunday, February 27th 2022, 8:54:52 am                                                #
-# Modified : Sunday, February 27th 2022, 9:35:18 am                                                #
+# Modified : Wednesday, March 2nd 2022, 11:16:55 pm                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -47,7 +47,7 @@ FILEPATH = "data/external/taobao_test.tar.gz"
 def dag():
     with DAG(
         dag_id=TEST_DAG_ID,
-        schedule_interval="@daily",
+        schedule_interval="@once",
         start_date=DATA_INTERVAL_START,
     ) as dag:
         S3DownloadOperator(
