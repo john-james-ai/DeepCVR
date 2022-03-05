@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, February 14th 2022, 12:32:13 pm                                               #
-# Modified : Friday, March 4th 2022, 12:15:56 pm                                                   #
+# Modified : Friday, March 4th 2022, 1:20:36 pm                                                    #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -83,7 +83,7 @@ class S3Downloader:
         """Returns a list of objects in the designated bucket"""
         objects = []
         s3 = boto3.resource("s3")
-        bucket = s3.Bucket(self._config.bucket)
+        bucket = s3.Bucket(self._bucket)
         for object in bucket.objects.all():
             objects.append(object.key)
         return objects
@@ -91,7 +91,7 @@ class S3Downloader:
     def _download(self, object_key: str, destination: str) -> None:
         """Downloads object designated by the object ke if not exists or force is True"""
 
-        response = self._s3.head_object(Bucket=self._config.bucket, Key=object_key)
+        response = self._s3.head_object(Bucket=self._bucket, Key=object_key)
         size = response["ContentLength"]
 
         self._progressbar = progressbar.progressbar.ProgressBar(maxval=size)
@@ -100,11 +100,11 @@ class S3Downloader:
         os.makedirs(os.path.dirname(destination), exist_ok=True)
         try:
             self._s3.download_file(
-                self._config.bucket, object_key, destination, Callback=self._download_callback
+                self._bucket, object_key, destination, Callback=self._download_callback
             )
             logger.info("Download of {} Complete!".format(object_key))
         except NoCredentialsError:
-            msg = "Credentials not available for {} bucket".format(self._config.bucket)
+            msg = "Credentials not available for {} bucket".format(self._bucket)
             raise NoCredentialsError(msg)
 
     def _download_callback(self, size):

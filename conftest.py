@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 10:41:57 pm                                             #
-# Modified : Saturday, February 26th 2022, 10:42:02 pm                                             #
+# Modified : Friday, March 4th 2022, 1:18:23 pm                                                    #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -27,7 +27,8 @@ os.environ["AIRFLOW__CORE__UNIT_TEST_MODE"] = "True"
 os.environ["AIRFLOW_HOME"] = os.path.dirname(os.path.dirname(__file__))
 
 
-@pytest.fixture(autouse=True, scope="session")
+# Enable autouse for airflow tests
+@pytest.fixture(autouse=False, scope="session")
 def reset_db():
     print("Resetting database")
     from airflow.utils import db

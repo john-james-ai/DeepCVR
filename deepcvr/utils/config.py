@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, February 14th 2022, 1:25:40 pm                                                #
-# Modified : Saturday, February 26th 2022, 4:45:25 am                                              #
+# Modified : Friday, March 4th 2022, 1:16:36 pm                                                    #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -55,11 +55,15 @@ class S3Config(Config):
         self._config = self.load_config(S3Config.__filepath)["amazon"]
 
     @property
+    def bucket(self) -> str:
+        return self._config["bucket"]
+
+    @property
     def key(self) -> str:
         return self._config["aws_access_key_id"]
 
     @property
-    def secret(self) -> str:
+    def password(self) -> str:
         return self._config["aws_secret_access_key"]
 
 

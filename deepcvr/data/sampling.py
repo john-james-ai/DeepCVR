@@ -11,20 +11,15 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 2:19:11 pm                                              #
-# Modified : Sunday, February 27th 2022, 5:03:16 am                                                #
+# Modified : Friday, March 4th 2022, 9:18:51 pm                                                    #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
 # Copyright: (c) 2022 Bryant St. Labs                                                              #
 # ================================================================================================ #
 """Multilabel stratified sampling and instance selection"""
-import os
 import logging
 import pandas as pd
-import inspect
-from tqdm import tqdm
-
-from deepcvr.data import COLS_CORE_DATASET
 
 # ------------------------------------------------------------------------------------------------ #
 logging.basicConfig(level=logging.DEBUG)
@@ -32,164 +27,116 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------------------------ #
 
 
-class MultilabelStratifiedSampler:
-    """Performs sampling according to the frequency distribution of click and conversion labels."""
+class TaobaoSampler:
+    """Stratified sampling with minimum common features constraint"""
 
     def __init__(
         self,
-        input_filepath: str,
-        output_filepath: str,
+        core_data: pd.DataFrame,
+        common_features_data: pd.DataFrame,
         frac: float = 0.001,
-        chunk_size: int = 1000000,
         random_state: int = None,
     ) -> None:
-        self._input_filepath = input_filepath
-        self._output_filepath = output_filepath
+        self._core_data = core_data
+        self._common_features_data = common_features_data
         self._frac = frac
-        self._chunk_size = chunk_size
         self._random_state = random_state
+        self._core_data_sample = None
+        self._common_features_data_sample = None
 
-        self._stats = {
-            "total_impressions": 0,
-            "no_response": {
-                "count": 0,
-                "percent": 0,
-            },
-            "click": {
-                "count": 0,
-                "percent": 0,
-            },
-            "conversion": {
-                "count": 0,
-                "percent": 0,
-            },
-        }
+    def execute(self) -> pd.DataFrame:
+        """Orchestrates the sampling process and returns the sample."""
+        common_feature_counts = self._get_common_features_counts_from_core()
+        common_feature_counts = self._add_counts_to_common_features(common_feature_counts)
+        common_features_filtered = self._filter_common_features(common_feature_counts)
+        core_filtered = self._filter_core(common_features_filtered)
+        self._core_data_sample = self._sample_filtered_core(core_filtered)
+        self._screen_common_features()
+        return self._core_data_sample, self._common_features_data_sample
 
-    def sample(self) -> None:
-        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+    @property
+    def core_data_sample(self) -> pd.DataFrame:
+        return self._core_data_sample
 
-        df = self._sample_core_data()
-        self._save(df=df, filepath=self._output_core_dataset_filepath)
+    @property
+    def common_features_data_sample(self) -> pd.DataFrame:
+        return self._common_features_data_sample
 
-        common_features = self._sample_common_features(df)
-        self._save(df=common_features, filepath=self._output_common_features_filepath)
+    def _get_common_features_counts_from_core(self) -> pd.DataFrame:
+        """Returns value counts for common_feature_index in core dataset"""
+        cfc = self._core_data[3].value_counts(normalize=False)
+        cfc = cfc.to_frame()
+        cfc.reset_index(inplace=True)
+        cfc.columns = ["common_feature_index", "count"]
+        return cfc
 
-        stats = self._stats.from_dict(self._stats, orient="columns")
+    def _add_counts_to_common_features(self, common_feature_counts: pd.DataFrame) -> pd.DataFrame:
+        """Returns common_features with their counts and cumsum in the core dataset"""
+        common_with_counts = pd.merge(
+            left=self._common_features_data,
+            right=common_feature_counts,
+            left_on=0,
+            right_on="common_feature_index",
+        )
+        common_with_counts.sort_values(by="count", ascending=False, inplace=True)
+        return common_with_counts
 
-        logger.debug("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+    def _filter_common_features(self, common_with_counts: pd.DataFrame) -> pd.DataFrame:
+        """Return top self._frac observations from sorte3d common_features (with counts)"""
+        filter_by_count = common_with_counts.sort_values(by="count", ascending=False, axis=0)
+        # fmt: off
+        filter_by_count = filter_by_count[0: int(filter_by_count.shape[0] * self._frac)]
+        # fmt: on
+        return filter_by_count
 
-        return stats
+    def _filter_core(self, filtered_common_features: pd.DataFrame) -> pd.DataFrame:
+        """Filters the core dataset by the filtered common features"""
+        core_filtered = pd.merge(
+            left=filtered_common_features[0], left_on=0, right=self._core_data, right_on=3
+        )
+        core_filtered = core_filtered[["0_y", 1, 2, 3, 4, 5]]
+        core_filtered.columns = [0, 1, 2, 3, 4, 5]
+        return core_filtered
 
-    def sample(self) -> pd.DataFrame:
-        """Prepares a dictionary of counts and proportions for each stratum"""
+    def _sample_filtered_core(self, core_filtered) -> pd.DataFrame:
+        """Returns the sample from the filtered core dataset"""
 
-        logger.debug("\t\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-
-        df = self._read_data()
-        self._stats["total_impressions"] = df.shape[0]
-
-        df = self._sample_data(data=df, clicks=0, conversions=0)
-        self._stats["no_response"]["count"] = df.shape[0]
-        self._stats["no_response"]["percent"] = df.shape[0] / self._stats["total_impressions"] * 100
-        df = pd.concat([df, df], axis=0)
-
-        df = self._sample_data(data=df, clicks=1, conversions=0)
-        self._stats["click"]["count"] = df.shape[0]
-        self._stats["click"]["percent"] = df.shape[0] / self._stats["total_impressions"] * 100
-        df = pd.concat([df, df], axis=0)
-
-        df = self._sample_data(data=df, clicks=1, conversions=1)
-        self._stats["conversion"]["count"] = df.shape[0]
-        self._stats["conversion"]["percent"] = df.shape[0] / self._stats["total_impressions"] * 100
-        df = pd.concat([df, df], axis=0)
-
-        logger.debug("\t\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-
-        return df
-
-    def _sample_data(self, data: pd.DataFrame, clicks: int, conversions: int) -> pd.DataFrame:
-        logger.debug("\t\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-        logger.debug("\t\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-
-        return data.loc[
-            (data["click_label"] == clicks) & (data["conversion_label"] == conversions)
-        ].sample(
-            frac=self._frac, replace=False, ignore_index=False, random_state=self._random_state
+        # Sample from 'no action' observations
+        n = int(
+            len(self._core_data.loc[(self._core_data[1] == 0) & (self._core_data[2] == 0)])
+            * self._frac
+        )
+        no_action = core_filtered.loc[(core_filtered[1] == 0) & (core_filtered[2] == 0)].sample(
+            n=n, replace=False, random_state=self._random_state
         )
 
-    def _read_data(self) -> pd.DataFrame:
-        """Reads the data"""
+        # Sample clicks
+        n = int(
+            len(self._core_data.loc[(self._core_data[1] == 1) & (self._core_data[2] == 0)])
+            * self._frac
+        )
+        clicks = core_filtered.loc[(core_filtered[1] == 1) & (core_filtered[2] == 0)].sample(
+            n=n, replace=False, random_state=self._random_state
+        )
 
-        logger.debug("\t\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+        # Sample conversions
+        n = int(
+            len(self._core_data.loc[(self._core_data[1] == 1) & (self._core_data[2] == 1)])
+            * self._frac
+        )
+        conversions = core_filtered.loc[(core_filtered[1] == 1) & (core_filtered[2] == 1)].sample(
+            n=n, replace=False, random_state=self._random_state
+        )
 
-        names = [
-            "click_label",
-            "conversion_label",
-            "common_features_index",
-            "num_features",
-            "features_list",
-        ]
+        sample = pd.concat([no_action, clicks], axis=0)
+        sample = pd.concat([sample, conversions], axis=0)
+        return sample
 
-        rows = sum(1 for _ in open(self._input_core_dataset_filepath, "r"))
-
-        chunks = []
-
-        with tqdm(total=rows, desc="Rows read: ") as bar:
-            for chunk in pd.read_csv(
-                self._input_core_dataset_filepath,
-                header=None,
-                index_col=[0],
-                chunksize=self._chunk_size,
-            ):
-                chunks.append(chunk)
-                bar.update(len(chunk))
-
-        df = pd.concat((f for f in chunks), axis=0)
-
-        df.columns = COLS_CORE_DATASET
-        df.index.name = "sample_id"
-
-        logger.debug("\t\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-        return df
-
-    def _read_common_features_data(self) -> pd.DataFrame:
-        """Returns core data including labels and sample ids"""
-
-        logger.debug("\t\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-
-        names = [
-            "num_features",
-            "features_list",
-        ]
-
-        rows = sum(1 for _ in open(self._input_common_features_filepath, "r"))
-
-        chunks = []
-
-        with tqdm(total=rows, desc="Rows read: ") as bar:
-            for chunk in pd.read_csv(
-                self._input_common_features_filepath,
-                header=None,
-                index_col=[0],
-                chunksize=self._chunk_size,
-            ):
-                chunks.append(chunk)
-                bar.update(len(chunk))
-
-        df = pd.concat((f for f in chunks), axis=0)
-
-        df.columns = names
-        df.index.name = "common_features_index"
-
-        logger.debug("\t\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-
-        return df
-
-    def _save(self, df: pd.DataFrame, filepath: str) -> None:
-        """Saves DataFrame to CSV file."""
-        logger.debug("\t\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        df.to_csv(filepath)
-
-        logger.debug("\t\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+    def _screen_common_features(self) -> pd.DataFrame:
+        """Extracts to common features that exist in the core sample"""
+        common_features_sample = pd.merge(
+            left=self._core_data_sample, left_on=3, right=self._common_features_data[0], right_on=0
+        )
+        common_features_sample = common_features_sample[["0_x", 1, 2, 3, 4, 5]]
+        common_features_sample.columns = [0, 1, 2, 3, 4, 5]
+        self._common_features_data_sample = common_features_sample

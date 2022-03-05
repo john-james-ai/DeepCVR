@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 5:39:47 pm                                              #
-# Modified : Saturday, February 26th 2022, 8:21:44 pm                                              #
+# Modified : Friday, March 4th 2022, 12:32:12 pm                                                   #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------- #
 
 
+@pytest.mark.skip
 @pytest.mark.sample
 class TestSampler:
     def test_sampler(self) -> None:
