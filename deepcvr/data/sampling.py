@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 2:19:11 pm                                              #
-# Modified : Friday, March 4th 2022, 9:18:51 pm                                                    #
+# Modified : Saturday, March 5th 2022, 1:08:53 am                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -135,8 +135,11 @@ class TaobaoSampler:
     def _screen_common_features(self) -> pd.DataFrame:
         """Extracts to common features that exist in the core sample"""
         common_features_sample = pd.merge(
-            left=self._core_data_sample, left_on=3, right=self._common_features_data[0], right_on=0
+            right=self._core_data_sample[3],
+            right_on=3,
+            left=self._common_features_data,
+            left_on=0,
         )
-        common_features_sample = common_features_sample[["0_x", 1, 2, 3, 4, 5]]
-        common_features_sample.columns = [0, 1, 2, 3, 4, 5]
-        self._common_features_data_sample = common_features_sample
+        self._common_features_data_sample = common_features_sample[[0, 1, 2]].drop_duplicates(
+            keep="first", inplace=False, ignore_index=False
+        )

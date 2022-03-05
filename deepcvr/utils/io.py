@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 6:41:17 pm                                              #
-# Modified : Friday, March 4th 2022, 5:10:05 pm                                                    #
+# Modified : Saturday, March 5th 2022, 12:37:51 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -34,13 +34,13 @@ def load_csv(
     names: list = None,
     usecols: list = None,
     index_col=False,
-    chunksize=None,
+    n_chunks=20,
 ) -> pd.DataFrame:
     """Reads a large CSV file into pandas DataFrame with progress monitor."""
 
     rows = sum(1 for _ in open(filepath, "r"))
 
-    chunksize = chunksize if chunksize else int(rows / 20)
+    chunksize = int(rows / n_chunks)
 
     chunks = []
 
