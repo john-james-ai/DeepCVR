@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, February 14th 2022, 12:32:13 pm                                               #
-# Modified : Friday, March 4th 2022, 1:20:36 pm                                                    #
+# Modified : Saturday, March 5th 2022, 9:59:35 am                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -25,8 +25,9 @@ import progressbar
 from botocore.exceptions import NoCredentialsError
 
 # ------------------------------------------------------------------------------------------------ #
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
 
 # ------------------------------------------------------------------------------------------------ #
 
@@ -38,6 +39,7 @@ class S3Downloader:
         bucket (str): S3 Bucket
         key: The S3 aws_access_key_id
         password: The S3 aws_secret_access_key
+        folder: The folder within the bucket containing the resource
         destination (str): Director to which all resources are to be downloaded
         objects (list): list of objects to download. If None, all objects in bucket are downloaded.
             Default None.
@@ -49,6 +51,7 @@ class S3Downloader:
         bucket: str,
         key: str,
         password: str,
+        folder: str,
         destination: str,
         objects: list = None,
         force: bool = False,
@@ -56,6 +59,7 @@ class S3Downloader:
         self._bucket = bucket
         self._key = key
         self._password = password
+        self._folder = folder
         self._destination = destination
         self._objects = objects
         self._force = force
@@ -70,8 +74,10 @@ class S3Downloader:
             "s3", aws_access_key_id=self._key, aws_secret_access_key=self._password
         )
 
+        os.makedirs(self._destination, exist_ok=True)
+
         for object_key in object_keys:
-            destination = os.path.join(self._destination, object_key)
+            destination = os.path.join(self._destination, os.path.basename(object_key))
             if not os.path.exists(destination) or self._force:
                 self._download(object_key, destination)
             else:
@@ -84,7 +90,8 @@ class S3Downloader:
         objects = []
         s3 = boto3.resource("s3")
         bucket = s3.Bucket(self._bucket)
-        for object in bucket.objects.all():
+        for object in bucket.objects.filter(Prefix=self._folder):
+            logger.debug("Found {} in {}".format(object.key, self._folder))
             objects.append(object.key)
         return objects
 

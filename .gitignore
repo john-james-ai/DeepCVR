@@ -8,10 +8,19 @@ __pycache__/
 # Credentials
 **/credentials.*
 
+# Config
+*.*yaml
+
+# Data
+*.csv
+
 # Notes and internal documents
 notes/*.*
 */_build/
 */lab/
+
+# Installation files
+**/*.deb
 
 # Airflow files
 $AIRFLOW_HOME/airflow.cfg

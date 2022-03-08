@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, February 14th 2022, 1:25:40 pm                                                #
-# Modified : Friday, March 4th 2022, 1:16:36 pm                                                    #
+# Modified : Saturday, March 5th 2022, 2:58:58 pm                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -40,6 +40,15 @@ class Config(ABC):
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         with open(filepath, "w") as f:
             yaml.dump(config, f)
+
+
+# ---------------------------------------------------------------------------- #
+def config_dag(filepath):
+    if os.path.exists(filepath):
+        with open(filepath, "r") as f:
+            return yaml.full_load(f)
+    else:
+        return {}
 
 
 # ---------------------------------------------------------------------------- #

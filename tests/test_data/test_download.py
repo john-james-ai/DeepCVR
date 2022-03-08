@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 4:08:17 pm                                                #
-# Modified : Friday, March 4th 2022, 1:25:41 pm                                                    #
+# Modified : Saturday, March 5th 2022, 2:52:28 am                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -39,18 +39,21 @@ class TestS3Download:
         logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
         config = S3Config()
-        objects = ["development/sample_skeleton_train.csv"]
         destination = "tests/data/external"
+        folder = "development/"
 
         downloader = S3Downloader(
             bucket=config.bucket,
             key=config.key,
             password=config.password,
+            folder=folder,
             destination=destination,
-            objects=objects,
+            objects=None,
             force=False,
         )
         downloader.execute()
+        # Downloads all objects in folder if objects is None
+        objects = ["taobao_train.tar.gz", "taobao_test.tar.gz"]
         for object in objects:
             filepath = os.path.join(destination, object)
             assert os.path.exists(filepath), logger.error("\tDestination file does not exist")

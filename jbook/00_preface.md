@@ -19,3 +19,5 @@ Deep learning has been applied to....
 ## Using this Book
 ## Computational Environment
 ## Reproducibility
+### Data Availability
+### Code Availability

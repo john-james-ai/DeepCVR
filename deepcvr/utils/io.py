@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 6:41:17 pm                                              #
-# Modified : Saturday, March 5th 2022, 12:37:51 am                                                 #
+# Modified : Saturday, March 5th 2022, 8:08:10 am                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -19,7 +19,6 @@
 # ================================================================================================ #
 """Reading and writing dataframes with progress bars"""
 import os
-import math
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
@@ -30,7 +29,7 @@ from tqdm import tqdm
 def load_csv(
     filepath: str,
     sep: str = ",",
-    header: list = None,
+    header: list = "infer",
     names: list = None,
     usecols: list = None,
     index_col=False,
@@ -70,13 +69,12 @@ def save_csv(
     sep: str = ",",
     header: bool = True,
     index: bool = False,
-    chunksize=50000,
+    n_chunks=20,
 ) -> pd.DataFrame:
     """Writes a large DataFrame to CSV file with progress monitor."""
 
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
-    n_chunks = math.ceil(data.memory_usage(deep=True).sum() / chunksize)
     chunks = np.array_split(data.index, n_chunks)
 
     for chunk, subset in enumerate(tqdm(chunks)):

@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 10:41:57 pm                                             #
-# Modified : Friday, March 4th 2022, 1:18:23 pm                                                    #
+# Modified : Saturday, March 5th 2022, 11:28:20 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -20,6 +20,8 @@
 import os
 
 import pytest
+
+# ------------------------------------------------------------------------------------------------ #
 
 os.environ["AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS"] = "False"
 os.environ["AIRFLOW__CORE__LOAD_EXAMPLES"] = "False"

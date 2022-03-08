@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 6:03:54 pm                                                #
-# Modified : Saturday, February 26th 2022, 2:43:20 pm                                              #
+# Modified : Saturday, March 5th 2022, 9:59:19 am                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -20,12 +20,12 @@
 #%%
 import os
 import tarfile
-import tempfile
 import logging
 
 # ------------------------------------------------------------------------------------------------ #
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
 # ------------------------------------------------------------------------------------------------ #
 
 
@@ -49,31 +49,18 @@ class Extractor:
         """Extracts and stores the data, then pushes filepaths to xCom."""
         logger.debug("\tSource: {}\tDestination: {}".format(self._source, self._destination))
 
+        # Create destination if it doesn't exist
+        os.makedirs(self._destination, exist_ok=True)
+
         # If all 4 raw files exist, it is assumed that the data have been downloaded
         n_files = len(os.listdir(self._destination))
         if n_files < 4:
-
-            with tempfile.TemporaryDirectory() as tempdir:
-                # Recursively extract data and store in destination directory
-                self._extract(source=self._source, destination=tempdir)
-
-    def _extract(self, source: str, destination: str) -> None:
-        """Extracts the data and returns the extracted filepaths"""
-
-        logger.debug("\t\tOpening {}".format(source))
-        data = tarfile.open(source)
-
-        for member in data.getmembers():
-            if self._is_csvfile(filename=member.name):
-                if self._not_exists_or_force(member_name=member.name):
-                    logger.debug("\t\tExtracting {} to {}".format(member.name, self._destination))
-                    data.extract(member, self._destination)  # Extract to destination
-                else:
-                    pass  # Do nothing if the csv file already exists and Force is False
-
-            else:
-                logger.debug("\t\tExtracting {} to {}".format(member.name, destination))
-                data.extract(member, destination)  # Extract to tempdirectory
+            filenames = os.listdir(self._source)
+            for filename in filenames:
+                filepath = os.path.join(self._source, filename)
+                tar = tarfile.open(filepath, "r:gz")
+                logger.debug("Just opened {}".format(filepath))
+                tar.extractall(self._destination)
 
     def _not_exists_or_force(self, member_name: str) -> bool:
         """Returns true if the file doesn't exist or force is True."""
