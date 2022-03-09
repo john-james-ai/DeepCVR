@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 6:41:17 pm                                              #
-# Modified : Saturday, March 5th 2022, 8:08:10 am                                                  #
+# Modified : Wednesday, March 9th 2022, 3:08:15 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -34,6 +34,7 @@ def load_csv(
     usecols: list = None,
     index_col=False,
     n_chunks=20,
+    skiprows=[],
 ) -> pd.DataFrame:
     """Reads a large CSV file into pandas DataFrame with progress monitor."""
 
@@ -51,6 +52,8 @@ def load_csv(
             names=names,
             usecols=usecols,
             index_col=index_col,
+            low_memory=False,
+            skiprows=skiprows,
             chunksize=chunksize,
         ):
             chunks.append(chunk)
@@ -80,19 +83,9 @@ def save_csv(
     for chunk, subset in enumerate(tqdm(chunks)):
         if chunk == 0:  # Write in 'w' mode
             data.loc[subset].to_csv(
-                filepath,
-                sep=sep,
-                header=header,
-                index_label=index_label,
-                mode="w",
-                index=index,
+                filepath, sep=sep, header=header, index_label=index_label, mode="w", index=index,
             )
         else:
             data.loc[subset].to_csv(
-                filepath,
-                sep=sep,
-                index_label=index_label,
-                header=None,
-                mode="a",
-                index=index,
+                filepath, sep=sep, index_label=index_label, header=None, mode="a", index=index,
             )

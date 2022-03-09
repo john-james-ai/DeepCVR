@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 4:08:17 pm                                                #
-# Modified : Saturday, March 5th 2022, 10:57:50 am                                                 #
+# Modified : Tuesday, March 8th 2022, 10:12:39 pm                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -24,7 +24,7 @@ import pytest
 import logging
 import inspect
 
-from deepcvr.data.stage import Stage
+from deepcvr.data.extract import Stage
 
 # ---------------------------------------------------------------------------- #
 logging.basicConfig(level=logging.DEBUG)

@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 4:08:17 pm                                                #
-# Modified : Saturday, March 5th 2022, 3:23:07 am                                                  #
+# Modified : Tuesday, March 8th 2022, 11:30:46 pm                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -23,11 +23,12 @@ import os
 import pytest
 import logging
 import inspect
-
-from deepcvr.data.extract import Extractor
+import shutil
+from deepcvr.data.extract import ExtractDAG, S3Downloader, Decompress, Stage
+from deepcvr.utils.config import config_dag
 
 # ---------------------------------------------------------------------------- #
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------- #
 
@@ -37,32 +38,28 @@ class TestExtract:
     def test_extract(self) -> None:
         logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
-        source = "tests/data/development/external/taobao_test.tar.gz"
-        destination = "tests/data/development/raw"
-        target_1 = os.path.join(destination, "sample_skeleton_test.csv")
-        target_2 = os.path.join(destination, "common_features_test.csv")
+        shutil.rmtree("tests/data/development", ignore_errors=True)
 
-        extractor = Extractor(source=source, destination=destination)
-        extractor.execute()
-        assert os.path.exists(target_1), logger.error("Failure. {} is missing".format(target_1))
-        assert os.path.exists(target_2), logger.error("Failure. {} is missing".format(target_2))
+        config_filepath = "tests/test_config/extract_dag.yaml"
+        mode = "dev"
+        config = config_dag(config_filepath)
 
-        source = "tests/data/development/external/taobao_train.tar.gz"
-        target_1 = os.path.join(destination, "sample_skeleton_train.csv")
-        target_2 = os.path.join(destination, "common_features_train.csv")
+        logger.debug(config)
 
-        extractor = Extractor(source=source, destination=destination)
-        extractor.execute()
-        assert os.path.exists(target_1), logger.error("Failure. {} is missing".format(target_1))
-        assert os.path.exists(target_2), logger.error("Failure. {} is missing".format(target_2))
+        dag = ExtractDAG(config=config, mode=mode)
+        dag.add_task(S3Downloader)
+        dag.add_task(Decompress)
+        dag.add_task(Stage)
+        dag.run()
+
+        assert len(os.listdir("tests/data/development/external")) == 2, logger.error(
+            "Unexpected files in external directory"
+        )
+
+        assert len(os.listdir("tests/data/development/raw")) == 4, logger.error(
+            "Unexpected files in raw directory"
+        )
 
         logger.info(
             "\tSuccessfully completed {} {}".format(self.__class__.__name__, inspect.stack()[0][3])
         )
-
-
-if __name__ == "__main__":
-
-    t = TestExtract()
-    t.test_extract()
-#%%

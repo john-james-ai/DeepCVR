@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 4:08:17 pm                                                #
-# Modified : Tuesday, March 8th 2022, 10:12:15 pm                                                  #
+# Modified : Wednesday, March 9th 2022, 5:09:34 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -23,41 +23,52 @@ import os
 import pytest
 import logging
 import inspect
-
-from deepcvr.data.extract import S3Downloader
-from deepcvr.utils.config import S3Config
+import shutil
+from deepcvr.data.transform import transform
 
 # ---------------------------------------------------------------------------- #
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------- #
 
 
-@pytest.mark.download
-class TestS3Download:
-    def test_download(self) -> None:
+@pytest.mark.transform
+class TestTransform:
+    def test_transform_core_features(self, caplog) -> None:
+        caplog.set_level(logging.INFO)
         logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
-        config = S3Config()
-        destination = "tests/data/external"
-        folder = "development/"
+        shutil.rmtree("tests/data/development/transformed", ignore_errors=True)
 
-        downloader = S3Downloader(
-            bucket=config.bucket,
-            key=config.key,
-            password=config.password,
-            folder=folder,
-            destination=destination,
-            objects=None,
-            force=False,
+        data = {
+            "train_core": {
+                "in_filepath": "tests/data/development/staged/sample_skeleton_train.csv",
+                "out_filepath": "tests/data/development/transformed/train_core_features.csv",
+                "filetype": "core",
+            },
+            "test_core": {
+                "in_filepath": "tests/data/development/staged/sample_skeleton_test.csv",
+                "out_filepath": "tests/data/development/transformed/test_core_features.csv",
+                "filetype": "core",
+            },
+            "train_common": {
+                "in_filepath": "tests/data/development/staged/common_features_train.csv",
+                "out_filepath": "tests/data/development/transformed/common_features_train.csv",
+                "filetype": "common",
+            },
+            "test_common": {
+                "in_filepath": "tests/data/development/staged/common_features_test.csv",
+                "out_filepath": "tests/data/development/transformed/common_features_test.csv",
+                "filetype": "common",
+            },
+        }
+
+        for _, v in data.items():
+            transform(v["in_filepath"], v["out_filepath"], v["filetype"])
+
+        assert len(os.listdir("tests/data/development/transformed")) == 4, logger.error(
+            "Unexpected files in transformed directory"
         )
-        downloader.execute()
-        # Downloads all objects in folder if objects is None
-        objects = ["taobao_train.tar.gz", "taobao_test.tar.gz"]
-        for object in objects:
-            filepath = os.path.join(destination, object)
-            assert os.path.exists(filepath), logger.error("\tDestination file does not exist")
-            os.remove(filepath)
 
         logger.info(
             "\tSuccessfully completed {} {}".format(self.__class__.__name__, inspect.stack()[0][3])
