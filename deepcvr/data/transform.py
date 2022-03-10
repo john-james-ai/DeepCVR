@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Sunday, February 27th 2022, 10:11:02 am                                               #
-# Modified : Thursday, March 10th 2022, 12:02:44 am                                                #
+# Modified : Thursday, March 10th 2022, 3:36:50 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -29,60 +29,169 @@ import pandas as pd
 from typing import Union
 
 from deepcvr.data.core import Task, ETLDag
+from deepcvr.utils.io import CsvIO
 
 # ------------------------------------------------------------------------------------------------ #
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 # ------------------------------------------------------------------------------------------------ #
+#                                    TRANSFORM CORE                                                #
+# ------------------------------------------------------------------------------------------------ #
+
+
 class TransformCoreTask(Task):
     """Transforms a core dataset into an core sans the feature list."""
 
-    def __init__(self, task_id: int, task_name: str, param: list) -> None:
-        super(TransformCoreTask, self).__init__(task_id=task_id, task_name=task_name, param=param)
+    def __init__(self, task_id: int, task_name: str, params: list) -> None:
+        super(TransformCoreTask, self).__init__(task_id=task_id, task_name=task_name, params=params)
 
-    def execute(self, data: pd.DataFrame) -> pd.DataFrame:
-        """Transforms the Core data into an impressions file"""
-        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-        columns = self._param
-        logger.debug("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-        return data[columns]
+    def execute(self) -> pd.DataFrame:
+        """Transforms core dataset removing features and restoring normal form.
+
+        Args
+            data (pd.DataFrame): Input data. Optional
+        """
+        logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+
+        io = CsvIO()
+        data = io.load(self._params["input_filepath"])
+
+        spark = (
+            SparkSession.builder.master("local[24]")
+            .appName("DeepCVR Core Features ETL")
+            .getOrCreate()
+        )
+
+        sdf = spark.createDataFrame(data)
+
+        result = sdf.groupby("partition").apply(transform_core)
+
+        logger.info("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+
+        pdf = result.toPandas()
+
+        io.save(pdf, self._params["output_filepath"])
 
 
 # ------------------------------------------------------------------------------------------------ #
-class TransformCommonFeatureGroupsTask(Task):
-    """Transforms a common features file to a common feature group file sans the features."""
+schema_core = StructType(
+    [
+        StructField("sample_id", DoubleType(), False),
+        StructField("click_label", DoubleType(), False),
+        StructField("conversion_label", DoubleType(), False),
+        StructField("common_features_index", StringType(), False),
+        StructField("num_core_features", DoubleType(), False),
+        StructField("partition", DoubleType(), False),
+    ]
+)
+# ------------------------------------------------------------------------------------------------ #
 
-    def __init__(self, task_id: int, task_name: str, param: list) -> None:
+
+@pandas_udf(schema_core, PandasUDFType.GROUPED_MAP)
+def transform_core(partition):
+
+    logger.info("\tTransforming core partition of {} observations.".format(str(partition.shape[0])))
+
+    output = partition[
+        [
+            "sample_id",
+            "click_label",
+            "conversion_label",
+            "common_features_index",
+            "num_core_features",
+            "partition",
+        ]
+    ]
+
+    return output
+
+
+# ------------------------------------------------------------------------------------------------ #
+#                          TRANSFORM COMMON FEATURE GROUPS                                         #
+# ------------------------------------------------------------------------------------------------ #
+
+
+class TransformCommonFeatureGroupsTask(Task):
+    """Transforms common features dataset into a common feature group dataset ."""
+
+    def __init__(self, task_id: int, task_name: str, params: list) -> None:
         super(TransformCommonFeatureGroupsTask, self).__init__(
-            task_id=task_id, task_name=task_name, param=param
+            task_id=task_id, task_name=task_name, params=params
         )
 
-    def execute(self, data: pd.DataFrame) -> pd.DataFrame:
-        """Transforms the Common features data into a common feature group file"""
-        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-        columns = self._param
-        logger.debug("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-        return data[columns]
+    def execute(self) -> pd.DataFrame:
+        """Transforms common features dataset to common feature groups by removing features and
+        restoring normal form.
+
+        Args
+            data (pd.DataFrame): Input data. Optional
+        """
+        logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+
+        io = CsvIO()
+        data = io.load(self._params["input_filepath"])
+
+        spark = (
+            SparkSession.builder.master("local[24]")
+            .appName("DeepCVR Core Features ETL")
+            .getOrCreate()
+        )
+
+        sdf = spark.createDataFrame(data)
+
+        result = sdf.groupby("partition").apply(transform_common_feature_groups)
+
+        logger.info("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+
+        pdf = result.toPandas()
+
+        io.save(pdf, self._params["output_filepath"])
 
 
+# ------------------------------------------------------------------------------------------------ #
+schema_common_feature_groups = StructType(
+    [
+        StructField("common_features_index", StringType(), False),
+        StructField("num_common_features", DoubleType(), False),
+        StructField("partition", DoubleType(), False),
+    ]
+)
+# ------------------------------------------------------------------------------------------------ #
+
+
+@pandas_udf(schema_common_feature_groups, PandasUDFType.GROUPED_MAP)
+def transform_common_feature_groups(partition):
+
+    logger.info("\tTransforming core partition of {} observations.".format(str(partition.shape[0])))
+
+    output = partition[["common_features_index", "num_common_features", "partition"]]
+
+    return output
+
+
+# ------------------------------------------------------------------------------------------------ #
+#                                TRANSFORM CORE FEATURES                                           #
 # ------------------------------------------------------------------------------------------------ #
 class TransformCoreFeaturesTask(Task):
     """Transforms core feature list into 3rd normal form """
 
-    def __init__(self, task_id: int, task_name: str, param: list) -> None:
+    def __init__(self, task_id: int, task_name: str, params: list) -> None:
         super(TransformCoreFeaturesTask, self).__init__(
-            task_id=task_id, task_name=task_name, param=param
+            task_id=task_id, task_name=task_name, params=params
         )
 
-    def execute(self, data: pd.DataFrame) -> pd.DataFrame:
+    def execute(self) -> pd.DataFrame:
         """Transforms core feature list into 3rd normal form
 
         Args
             data (pd.DataFrame): Input data. Optional
         """
-        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+        logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+
+        io = CsvIO()
+        data = io.load(self._params["input_filepath"])
 
         spark = (
             SparkSession.builder.master("local[24]")
@@ -94,41 +203,11 @@ class TransformCoreFeaturesTask(Task):
 
         result = sdf.groupby("partition").apply(transform_core_features)
 
-        logger.debug("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+        logger.info("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
-        return result.toPandas()
+        pdf = result.toPandas()
 
-
-# ------------------------------------------------------------------------------------------------ #
-class TransformCommonFeaturesTask(Task):
-    """Transforms core feature list into 3rd normal form """
-
-    def __init__(self, task_id: int, task_name: str, param: list) -> None:
-        super(TransformCommonFeaturesTask, self).__init__(
-            task_id=task_id, task_name=task_name, param=param
-        )
-
-    def execute(self, data: pd.DataFrame) -> pd.DataFrame:
-        """Transforms common feature list into 3rd normal form
-
-        Args
-            data (pd.DataFrame): Input data. Optional
-        """
-        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-
-        spark = (
-            SparkSession.builder.master("local[24]")
-            .appName("DeepCVR Common Features ETL")
-            .getOrCreate()
-        )
-
-        sdf = spark.createDataFrame(data)
-
-        result = sdf.groupby("partition").apply(transform_common_features)
-
-        logger.debug("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-
-        return result.toPandas()
+        io.save(pdf, self._params["output_filepath"])
 
 
 # ------------------------------------------------------------------------------------------------ #
@@ -146,19 +225,16 @@ schema_core_features = StructType(
 @pandas_udf(schema_core_features, PandasUDFType.GROUPED_MAP)
 def transform_core_features(partition):
 
-    logging.debug(
+    logger.info(
         "\tTransforming core features partition of {} observations.".format(str(partition.shape[0]))
     )
-
-    logger.info(40 * "=")
-    logger.info(partition.head())
 
     output = pd.DataFrame()
 
     for _, row in partition.iterrows():
         sample_id = int(row[0])
-        num_features = int(row[1])
-        feature_string = row[2]
+        num_features = int(row[4])
+        feature_string = row[5]
 
         df = parse_feature_string(
             id_name="sample_id",
@@ -170,6 +246,41 @@ def transform_core_features(partition):
         output = pd.concat([output, df], axis=0)
 
     return output
+
+
+# ------------------------------------------------------------------------------------------------ #
+#                               TRANSFORM COMMON FEATURES                                          #
+# ------------------------------------------------------------------------------------------------ #
+class TransformCommonFeaturesTask(Task):
+    """Transforms core feature list into 3rd normal form """
+
+    def __init__(self, task_id: int, task_name: str, params: list) -> None:
+        super(TransformCommonFeaturesTask, self).__init__(
+            task_id=task_id, task_name=task_name, params=params
+        )
+
+    def execute(self) -> None:
+        """Transforms common feature list into 3rd normal form"""
+        logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+
+        io = CsvIO()
+        data = io.load(self._params["input_filepath"])
+
+        spark = (
+            SparkSession.builder.master("local[24]")
+            .appName("DeepCVR Common Features ETL")
+            .getOrCreate()
+        )
+
+        sdf = spark.createDataFrame(data)
+
+        result = sdf.groupby("partition").apply(transform_common_features)
+
+        logger.info("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+
+        pdf = result.toPandas()
+
+        io.save(pdf, self._params["output_filepath"])
 
 
 # ------------------------------------------------------------------------------------------------ #
@@ -187,7 +298,7 @@ schema_common_features = StructType(
 @pandas_udf(schema_common_features, PandasUDFType.GROUPED_MAP)
 def transform_common_features(partition):
 
-    logging.debug(
+    logger.info(
         "\tTransforming common features partition of {} observations.".format(
             str(partition.shape[0])
         )
@@ -240,7 +351,6 @@ def parse_feature_string(
     feature_values = []
 
     # Expand into a list of feature structures
-    logger.debug(feature_string)
     feature_structures = re.split("\x01", feature_string)
 
     for structure in feature_structures:
@@ -258,7 +368,7 @@ def parse_feature_string(
     df = pd.DataFrame(data=d)
 
     # Confirms number of rows equals expected number of features.
-    assert df.shape[0] == num_features, logging.error(
+    assert df.shape[0] == num_features, logger.error(
         "Number of features mismatch index {}. Expected: {}. Actual: {}.".format(
             id_value, num_features, df.shape[0]
         )
@@ -273,11 +383,11 @@ class TransformDAG(ETLDag):
     """Directed acyclic graph for the transform phase of the ETL
 
     Args:
-        param_filepath (str): The location of the
+        params_filepath (str): The location of the
 
     """
 
-    def __init__(self, dag_id: dict) -> None:
+    def __init__(self, dag_id: str) -> None:
         super(TransformDAG, self).__init__(dag_id=dag_id)
 
 
@@ -301,7 +411,7 @@ class TransformDAGGenerator:
         return self._dags
 
     def execute(self) -> None:
-        """Iterates through the param and generates the DAGS"""
+        """Iterates through the params and generates the DAGS"""
 
         for dag_id, tasks in self._config.items():
             dag = TransformDAG(dag_id=dag_id)
@@ -315,8 +425,10 @@ class TransformDAGGenerator:
                 task_instance = task(
                     task_id=task_config["task_id"],
                     task_name=task_config["task_name"],
-                    param=task_config["task_param"],
+                    params=task_config["task_params"],
                 )
+
+                logger.info(task_instance)
 
                 dag.add_task(task_instance)
             self._dags.append(dag)

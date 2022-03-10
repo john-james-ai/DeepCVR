@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Tuesday, March 8th 2022, 8:48:19 pm                                                   #
-# Modified : Wednesday, March 9th 2022, 11:46:42 pm                                                #
+# Modified : Thursday, March 10th 2022, 3:34:33 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -19,12 +19,11 @@
 # ================================================================================================ #
 """Base and abstract class definitions."""
 from abc import ABC, abstractmethod
-from typing import Any, Type
-import pandas as pd
+from typing import Any
 import logging
 
 # ------------------------------------------------------------------------------------------------ #
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------------------------ #
 
@@ -37,10 +36,17 @@ class Task(ABC):
 
     """
 
-    def __init__(self, task_id: int, task_name: str, param: Any) -> None:
+    def __init__(self, task_id: int, task_name: str, params: Any) -> None:
         self._task_id = task_id
         self._task_name = task_name
-        self._param = param
+        self._params = params
+
+    def __str__(self) -> str:
+        return str(
+            "Task id: {}\tTask name: {}\tParams: {}".format(
+                self._task_id, self._task_name, self._params
+            )
+        )
 
     @property
     def task_id(self) -> int:
@@ -55,7 +61,7 @@ class Task(ABC):
         return self._params
 
     @abstractmethod
-    def execute(self, data: pd.DataFrame = None) -> Any:
+    def execute(self) -> Any:
         """Executes the task
 
         Args:
@@ -80,25 +86,23 @@ class ETLDag(ABC):
     def __init__(self, dag_id: dict) -> None:
         self._dag_id = dag_id
         self._tasks = []
-        self._data = None
 
-    def add_task(self, task: Type[Task]) -> None:
+    def add_task(self, task: Task) -> None:
         """Adds a task to the DAG
 
         Args:
-            task (Type[Task]): Class. One of the three supported classes
+            task (Task): Class. One of the three supported classes
         """
         self._tasks.append(task)
 
-    def run(self, data: pd.DataFrame = None) -> None:
+    def run(self) -> None:
         for task in self._tasks:
-            logger.debug(task.task_name)
-            data = task.execute(data=self._data)
-            self._data = self._data if data is None else data
+            logger.info(task.task_name)
+            task.execute()
 
     def print_tasks(self) -> None:
         for task in self._tasks:
             logger.info(task.task_id)
             logger.info(task.task_name)
-            logger.info(task.param)
+            logger.info(task.params)
             logger.info("\n")
