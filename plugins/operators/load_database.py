@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 9:14:54 pm                                              #
-# Modified : Sunday, February 27th 2022, 4:20:28 pm                                                #
+# Modified : Wednesday, March 9th 2022, 12:59:43 pm                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -23,7 +23,7 @@ from sqlalchemy import create_engine
 from deepcvr.utils.config import MySQLConfig
 from deepcvr.data import COLS_IMPRESSIONS_TBL
 from deepcvr.data import COLS_CORE_DATASET
-from deepcvr.utils.io import load_csv
+from deepcvr.utils.io import CsvIO
 
 # ------------------------------------------------------------------------------------------------ #
 
@@ -47,7 +47,8 @@ class LoadImpressionsOperator(BaseOperator):
         )
 
         # Obtain core data
-        df = load_csv(filepath=self._filepath, sep=",", header=None, index_col=False)
+        io = CsvIO()
+        df = io.load(filepath=self._filepath, sep=",", header=None, index_col=False)
         df.columns = COLS_CORE_DATASET
 
         # Set a chunksize

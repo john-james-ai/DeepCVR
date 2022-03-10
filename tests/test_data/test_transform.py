@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 4:08:17 pm                                                #
-# Modified : Wednesday, March 9th 2022, 5:09:34 am                                                 #
+# Modified : Thursday, March 10th 2022, 12:02:49 am                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -19,12 +19,13 @@
 # ================================================================================================ #
 
 #%%
-import os
 import pytest
 import logging
 import inspect
 import shutil
-from deepcvr.data.transform import transform
+from deepcvr.data.transform import TransformDAGGenerator
+from deepcvr.utils.config import config_dag
+
 
 # ---------------------------------------------------------------------------- #
 logging.basicConfig(level=logging.DEBUG)
@@ -40,35 +41,13 @@ class TestTransform:
 
         shutil.rmtree("tests/data/development/transformed", ignore_errors=True)
 
-        data = {
-            "train_core": {
-                "in_filepath": "tests/data/development/staged/sample_skeleton_train.csv",
-                "out_filepath": "tests/data/development/transformed/train_core_features.csv",
-                "filetype": "core",
-            },
-            "test_core": {
-                "in_filepath": "tests/data/development/staged/sample_skeleton_test.csv",
-                "out_filepath": "tests/data/development/transformed/test_core_features.csv",
-                "filetype": "core",
-            },
-            "train_common": {
-                "in_filepath": "tests/data/development/staged/common_features_train.csv",
-                "out_filepath": "tests/data/development/transformed/common_features_train.csv",
-                "filetype": "common",
-            },
-            "test_common": {
-                "in_filepath": "tests/data/development/staged/common_features_test.csv",
-                "out_filepath": "tests/data/development/transformed/common_features_test.csv",
-                "filetype": "common",
-            },
-        }
+        filepath = "tests/test_config/transform.yaml"
+        config = config_dag(filepath)["development"]
 
-        for _, v in data.items():
-            transform(v["in_filepath"], v["out_filepath"], v["filetype"])
-
-        assert len(os.listdir("tests/data/development/transformed")) == 4, logger.error(
-            "Unexpected files in transformed directory"
-        )
+        gen = TransformDAGGenerator(config)
+        gen.execute()
+        for dag in gen.dags:
+            dag.run()
 
         logger.info(
             "\tSuccessfully completed {} {}".format(self.__class__.__name__, inspect.stack()[0][3])

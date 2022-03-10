@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, February 14th 2022, 12:32:13 pm                                               #
-# Modified : Tuesday, March 8th 2022, 11:31:40 pm                                                  #
+# Modified : Wednesday, March 9th 2022, 4:55:43 pm                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -22,11 +22,13 @@ import os
 import boto3
 import logging
 import progressbar
+import pandas as pd
 import tarfile
 from botocore.exceptions import NoCredentialsError
+from typing import Any
 
 from deepcvr.data.core import ETLDag, Task
-from deepcvr.utils.io import load_csv, save_csv
+from deepcvr.utils.io import CsvIO
 from deepcvr.data import COLS_CORE_DATASET, COLS_COMMON_FEATURES_DATASET
 
 # ------------------------------------------------------------------------------------------------ #
@@ -40,7 +42,6 @@ class S3Downloader(Task):
     """Download operator for Amazon S3 Resources.
 
     Args:
-        mode (str): Either 'dev' or 'prod'.
         config (dict): Configuration dictionary that includes:
             bucket (str): S3 Bucket
             key: The S3 aws_access_key_id
@@ -52,11 +53,10 @@ class S3Downloader(Task):
             force (bool): Determines whether to force download if local version exists.
     """
 
-    def __init__(self, config: dict, mode: str = "dev") -> None:
-        super(S3Downloader, self).__init__(config=config, mode=mode)
+    def __init__(self, config: dict) -> None:
+        super(S3Downloader, self).__init__(config=config)
 
-        logger.debug("Mode: {}".format(self._mode))
-        task_config = config[self._mode][self.__class__.__name__]
+        task_config = config[self.__class__.__name__]
 
         logger.debug(task_config)
 
@@ -70,7 +70,7 @@ class S3Downloader(Task):
 
         self._progressbar = None
 
-    def execute(self) -> None:
+    def execute(self, data: pd.DataFrame = None) -> Any:
 
         object_keys = self._objects if self._objects else self._list_bucket_contents()
 
@@ -135,17 +135,18 @@ class Decompress(Task):
             source (str): The filepath to the source file to be decompressed
             destination (str): The destination directory into which data shall be stored.
             force (bool): Forces extraction even when files already exist.
-        mode (str): Either 'dev' or 'prod'
     """
 
-    def __init__(self, config: dict, mode: str = "dev") -> None:
-        super(Decompress, self).__init__(config=config, mode=mode)
+    def __init__(self, config: dict) -> None:
+        super(Decompress, self).__init__(config=config)
 
-        self._source = config[self._mode][self.__class__.__name__]["source"]
-        self._destination = config[self._mode][self.__class__.__name__]["destination"]
-        self._force = config[self._mode][self.__class__.__name__]["force"]
+        task_config = config[self.__class__.__name__]
 
-    def execute(self) -> None:
+        self._source = task_config["source"]
+        self._destination = task_config["destination"]
+        self._force = task_config["force"]
+
+    def execute(self, data: pd.DataFrame = None) -> Any:
         """Extracts and stores the data, then pushes filepaths to xCom."""
         logger.debug("\tSource: {}\tDestination: {}".format(self._source, self._destination))
 
@@ -186,15 +187,19 @@ class Stage(Task):
 
     """
 
-    def __init__(self, config: dict, mode: str = "dev") -> None:
-        super(Stage, self).__init__(config=config, mode=mode)
+    def __init__(self, config: dict) -> None:
+        super(Stage, self).__init__(config=config)
 
-        self._source = config[self._mode][self.__class__.__name__]["source"]
-        self._destination = config[self._mode][self.__class__.__name__]["destination"]
-        self._n_partitions = config[self._mode][self.__class__.__name__]["n_partitions"]
-        self._force = config[self._mode][self.__class__.__name__]["force"]
+        task_config = config[self.__class__.__name__]
 
-    def execute(self) -> None:
+        self._source = task_config["source"]
+        self._destination = task_config["destination"]
+        self._n_partitions = task_config["n_partitions"]
+        self._force = task_config["force"]
+
+    def execute(self, data: pd.DataFrame = None) -> Any:
+
+        io = CsvIO()
 
         filenames = os.listdir(self._source)
 
@@ -205,7 +210,7 @@ class Stage(Task):
             if not os.path.exists(destination) or self._force:
                 names = self._get_names(destination)
 
-                data = load_csv(source, header=None, names=names)
+                data = io.load(source, header=None, names=names)
                 reindexed = data.reset_index()
 
                 data["partition"] = reindexed.index % self._n_partitions
@@ -214,7 +219,7 @@ class Stage(Task):
                     "Staging {} with {} observations".format(destination, str(data.shape[0]))
                 )
 
-                save_csv(data, filepath=destination, header=True, index=False)
+                io.save(data, filepath=destination, header=True, index=False)
 
     def _get_names(self, filename: str) -> list:
         if "common" in filename:
@@ -230,10 +235,9 @@ class ExtractDAG(ETLDag):
     """Directed acyclic graph for the extract phase of the ETL
 
     Args:
-        mode (str): Mode is 'dev' for development or 'prod' for production data.
         config_filepath (str): The location of the
 
     """
 
-    def __init__(self, config: dict, mode: str = "dev") -> None:
-        super(ExtractDAG, self).__init__(config=config, mode=mode)
+    def __init__(self, config: dict) -> None:
+        super(ExtractDAG, self).__init__(config=config)

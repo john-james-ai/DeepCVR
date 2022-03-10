@@ -20,6 +20,7 @@
 from abc import ABC
 import os
 import yaml
+import yamlordereddictloader
 
 
 # ---------------------------------------------------------------------------- #
@@ -46,7 +47,7 @@ class Config(ABC):
 def config_dag(filepath):
     if os.path.exists(filepath):
         with open(filepath, "r") as f:
-            return yaml.full_load(f)
+            return yaml.load(f, Loader=yamlordereddictloader.Loader)
     else:
         return {}
 
