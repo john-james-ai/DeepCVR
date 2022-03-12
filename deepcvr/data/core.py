@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Tuesday, March 8th 2022, 8:48:19 pm                                                   #
-# Modified : Thursday, March 10th 2022, 3:34:33 am                                                 #
+# Modified : Saturday, March 12th 2022, 11:33:25 am                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -19,6 +19,7 @@
 # ================================================================================================ #
 """Base and abstract class definitions."""
 from abc import ABC, abstractmethod
+import importlib
 from typing import Any
 import logging
 
@@ -32,7 +33,9 @@ class Task(ABC):
     """Abstract class for task classes
 
     Args:
-        config_filepath (str): The location of the
+        task_id: Sequence number for the task in its dag
+        task_name: Human readable name
+        params: The parameters the task requires
 
     """
 
@@ -74,31 +77,27 @@ class Task(ABC):
 # ------------------------------------------------------------------------------------------------ #
 
 
-class ETLDag(ABC):
-    """Abstract base class for ETL directed acyclic graphs
+class Dag:
+    """Directed acyclic graph of tasks.
 
     Args:
-        mode (str): Mode is 'dev' for development or 'prod' for production data.
-        config_filepath (str): The location of the
+        dag_id (str): Identifier for the dag
+        dag_description (str): Brief description
+        tasks (list): List of tasks to execute
 
     """
 
-    def __init__(self, dag_id: dict) -> None:
+    def __init__(self, dag_id: str, dag_description: str, tasks: list, context: Any = None) -> None:
         self._dag_id = dag_id
-        self._tasks = []
-
-    def add_task(self, task: Task) -> None:
-        """Adds a task to the DAG
-
-        Args:
-            task (Task): Class. One of the three supported classes
-        """
-        self._tasks.append(task)
+        self._dag_description = dag_description
+        self._tasks = tasks
+        self._context = context
 
     def run(self) -> None:
         for task in self._tasks:
-            logger.info(task.task_name)
-            task.execute()
+            logger.info("Task {}: {} started.".format(str(task.task_id), task.task_name))
+            task.execute(context=self._context)
+            logger.info("Task {}: {} completed.".format(str(task.task_id), task.task_name))
 
     def print_tasks(self) -> None:
         for task in self._tasks:
@@ -106,3 +105,63 @@ class ETLDag(ABC):
             logger.info(task.task_name)
             logger.info(task.params)
             logger.info("\n")
+
+
+# ------------------------------------------------------------------------------------------------ #
+
+
+class DagBuilder:
+    """Constructs a DAG from a configuration dictionary
+
+    Args:
+        config (dict): Nested dictionary of tasks defined by a dag_id, dag_description and
+        a nested dictionary of tasks, where each task is defined by:
+          task_id: Sequence number of task
+          task: Name of the class that executes the task
+          module: The module containing the task
+          task_name: A name for the task
+          task_params: Any parameters required by the task
+        mode (str): 'd' for development or 'p' for production.
+    """
+
+    def __init__(self, config: dict, mode: str = "d", context: dict = None) -> None:
+        self._config = config
+        self._mode = "production" if mode == "p" else "development"
+        self._context = context
+        self._dag = None
+
+    @property
+    def dag(self) -> Dag:
+        return self._dag
+
+    def build(self) -> Dag:
+
+        config = self._config[self._mode]
+
+        dag_id = config["dag_id"]
+        dag_description = config["dag_description"]
+
+        tasks = []
+
+        for _, task_config in config["tasks"].items():
+
+            # Create task object from string using importlib
+
+            module = importlib.import_module(task_config["module"])
+            task = getattr(module, task_config["task"])
+
+            task_instance = task(
+                task_id=task_config["task_id"],
+                task_name=task_config["task_name"],
+                params=task_config["task_params"],
+            )
+
+            logger.debug(task_instance)
+
+            tasks.append(task_instance)
+
+        self._dag = Dag(
+            dag_id=dag_id, dag_description=dag_description, tasks=tasks, context=self._context
+        )
+
+        return self._dag

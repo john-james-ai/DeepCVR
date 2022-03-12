@@ -9,7 +9,7 @@ sudo mysqld --skip-grant-tables &
 sudo mysql -u root mysql
 # Setting the root password and building the airflow metadata database
 sudo mysql -u root
-ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'j2ssql';
+ALTER USER 'john'@'localhost' IDENTIFIED WITH mysql_native_password BY 'j2ssql';
 FLUSH PRIVILEGES;
 exit from mysql
 sudo /etc/init.d/mysql restart
@@ -40,3 +40,6 @@ airflow db reset
 sudo dpkg -i setup/MySQL/mysql-apt-config_0.8.22-1_all.deb
 sudo apt-get update
 sudo apt-get install mysql-server
+
+# Login
+mysql -u 'john'

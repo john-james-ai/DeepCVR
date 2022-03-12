@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Sunday, February 27th 2022, 10:11:02 am                                               #
-# Modified : Thursday, March 10th 2022, 3:36:50 am                                                 #
+# Modified : Saturday, March 12th 2022, 6:21:09 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -21,14 +21,13 @@
 import logging
 import re
 import inspect
-import importlib
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 from pyspark.sql.types import LongType, StringType, DoubleType, StructField, StructType
 import pandas as pd
-from typing import Union
+from typing import Union, Any
 
-from deepcvr.data.core import Task, ETLDag
+from deepcvr.data.core import Task
 from deepcvr.utils.io import CsvIO
 
 # ------------------------------------------------------------------------------------------------ #
@@ -41,19 +40,21 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------------------------ #
 
 
-class TransformCoreTask(Task):
+class TransformImpressionsTask(Task):
     """Transforms a core dataset into an core sans the feature list."""
 
     def __init__(self, task_id: int, task_name: str, params: list) -> None:
-        super(TransformCoreTask, self).__init__(task_id=task_id, task_name=task_name, params=params)
+        super(TransformImpressionsTask, self).__init__(
+            task_id=task_id, task_name=task_name, params=params
+        )
 
-    def execute(self) -> pd.DataFrame:
+    def execute(self, context: Any = None) -> None:
         """Transforms core dataset removing features and restoring normal form.
 
         Args
             data (pd.DataFrame): Input data. Optional
         """
-        logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
         io = CsvIO()
         data = io.load(self._params["input_filepath"])
@@ -68,7 +69,7 @@ class TransformCoreTask(Task):
 
         result = sdf.groupby("partition").apply(transform_core)
 
-        logger.info("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+        logger.debug("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
         pdf = result.toPandas()
 
@@ -82,7 +83,7 @@ schema_core = StructType(
         StructField("click_label", DoubleType(), False),
         StructField("conversion_label", DoubleType(), False),
         StructField("common_features_index", StringType(), False),
-        StructField("num_core_features", DoubleType(), False),
+        StructField("num_features", DoubleType(), False),
         StructField("partition", DoubleType(), False),
     ]
 )
@@ -92,7 +93,9 @@ schema_core = StructType(
 @pandas_udf(schema_core, PandasUDFType.GROUPED_MAP)
 def transform_core(partition):
 
-    logger.info("\tTransforming core partition of {} observations.".format(str(partition.shape[0])))
+    logger.debug(
+        "\tTransforming core partition of {} observations.".format(str(partition.shape[0]))
+    )
 
     output = partition[
         [
@@ -100,7 +103,7 @@ def transform_core(partition):
             "click_label",
             "conversion_label",
             "common_features_index",
-            "num_core_features",
+            "num_features",
             "partition",
         ]
     ]
@@ -121,14 +124,14 @@ class TransformCommonFeatureGroupsTask(Task):
             task_id=task_id, task_name=task_name, params=params
         )
 
-    def execute(self) -> pd.DataFrame:
+    def execute(self, context: Any = None) -> None:
         """Transforms common features dataset to common feature groups by removing features and
         restoring normal form.
 
         Args
             data (pd.DataFrame): Input data. Optional
         """
-        logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
         io = CsvIO()
         data = io.load(self._params["input_filepath"])
@@ -143,7 +146,7 @@ class TransformCommonFeatureGroupsTask(Task):
 
         result = sdf.groupby("partition").apply(transform_common_feature_groups)
 
-        logger.info("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+        logger.debug("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
         pdf = result.toPandas()
 
@@ -154,7 +157,7 @@ class TransformCommonFeatureGroupsTask(Task):
 schema_common_feature_groups = StructType(
     [
         StructField("common_features_index", StringType(), False),
-        StructField("num_common_features", DoubleType(), False),
+        StructField("num_features", DoubleType(), False),
         StructField("partition", DoubleType(), False),
     ]
 )
@@ -164,9 +167,11 @@ schema_common_feature_groups = StructType(
 @pandas_udf(schema_common_feature_groups, PandasUDFType.GROUPED_MAP)
 def transform_common_feature_groups(partition):
 
-    logger.info("\tTransforming core partition of {} observations.".format(str(partition.shape[0])))
+    logger.debug(
+        "\tTransforming core partition of {} observations.".format(str(partition.shape[0]))
+    )
 
-    output = partition[["common_features_index", "num_common_features", "partition"]]
+    output = partition[["common_features_index", "num_features", "partition"]]
 
     return output
 
@@ -174,21 +179,21 @@ def transform_common_feature_groups(partition):
 # ------------------------------------------------------------------------------------------------ #
 #                                TRANSFORM CORE FEATURES                                           #
 # ------------------------------------------------------------------------------------------------ #
-class TransformCoreFeaturesTask(Task):
+class TransformFeaturesTask(Task):
     """Transforms core feature list into 3rd normal form """
 
     def __init__(self, task_id: int, task_name: str, params: list) -> None:
-        super(TransformCoreFeaturesTask, self).__init__(
+        super(TransformFeaturesTask, self).__init__(
             task_id=task_id, task_name=task_name, params=params
         )
 
-    def execute(self) -> pd.DataFrame:
+    def execute(self, context: Any = None) -> None:
         """Transforms core feature list into 3rd normal form
 
         Args
             data (pd.DataFrame): Input data. Optional
         """
-        logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
         io = CsvIO()
         data = io.load(self._params["input_filepath"])
@@ -203,7 +208,7 @@ class TransformCoreFeaturesTask(Task):
 
         result = sdf.groupby("partition").apply(transform_core_features)
 
-        logger.info("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+        logger.debug("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
         pdf = result.toPandas()
 
@@ -225,7 +230,7 @@ schema_core_features = StructType(
 @pandas_udf(schema_core_features, PandasUDFType.GROUPED_MAP)
 def transform_core_features(partition):
 
-    logger.info(
+    logger.debug(
         "\tTransforming core features partition of {} observations.".format(str(partition.shape[0]))
     )
 
@@ -259,9 +264,9 @@ class TransformCommonFeaturesTask(Task):
             task_id=task_id, task_name=task_name, params=params
         )
 
-    def execute(self) -> None:
+    def execute(self, context: Any = None) -> None:
         """Transforms common feature list into 3rd normal form"""
-        logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
         io = CsvIO()
         data = io.load(self._params["input_filepath"])
@@ -276,7 +281,7 @@ class TransformCommonFeaturesTask(Task):
 
         result = sdf.groupby("partition").apply(transform_common_features)
 
-        logger.info("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+        logger.debug("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
         pdf = result.toPandas()
 
@@ -298,7 +303,7 @@ schema_common_features = StructType(
 @pandas_udf(schema_common_features, PandasUDFType.GROUPED_MAP)
 def transform_common_features(partition):
 
-    logger.info(
+    logger.debug(
         "\tTransforming common features partition of {} observations.".format(
             str(partition.shape[0])
         )
@@ -374,65 +379,3 @@ def parse_feature_string(
         )
     )
     return df
-
-
-# ------------------------------------------------------------------------------------------------ #
-
-
-class TransformDAG(ETLDag):
-    """Directed acyclic graph for the transform phase of the ETL
-
-    Args:
-        params_filepath (str): The location of the
-
-    """
-
-    def __init__(self, dag_id: str) -> None:
-        super(TransformDAG, self).__init__(dag_id=dag_id)
-
-
-# ------------------------------------------------------------------------------------------------ #
-
-
-class TransformDAGGenerator:
-    """Generates a series of transformation DAGS
-
-    Args:
-        config (dict): Configurations for multiple dags
-
-    """
-
-    def __init__(self, config: dict) -> None:
-        self._config = config
-        self._dags = []
-
-    @property
-    def dags(self) -> dict:
-        return self._dags
-
-    def execute(self) -> None:
-        """Iterates through the params and generates the DAGS"""
-
-        for dag_id, tasks in self._config.items():
-            dag = TransformDAG(dag_id=dag_id)
-            for _, task_config in tasks.items():
-
-                # Create task object from string using importlib
-
-                module = importlib.import_module(task_config["module"])
-                task = getattr(module, task_config["task"])
-
-                task_instance = task(
-                    task_id=task_config["task_id"],
-                    task_name=task_config["task_name"],
-                    params=task_config["task_params"],
-                )
-
-                logger.info(task_instance)
-
-                dag.add_task(task_instance)
-            self._dags.append(dag)
-
-    def print(self) -> None:
-        for dag in self._dags:
-            logger.info(dag.print_tasks())

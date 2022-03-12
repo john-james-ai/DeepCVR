@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 4:08:17 pm                                                #
-# Modified : Thursday, March 10th 2022, 2:03:26 am                                                 #
+# Modified : Saturday, March 12th 2022, 1:54:38 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -19,11 +19,13 @@
 # ================================================================================================ #
 
 #%%
+import os
 import pytest
 import logging
 import inspect
 import shutil
-from deepcvr.data.transform import TransformDAGGenerator
+
+from deepcvr.data.core import DagBuilder
 from deepcvr.utils.config import config_dag
 
 
@@ -35,19 +37,28 @@ logger = logging.getLogger(__name__)
 
 @pytest.mark.transform
 class TestTransform:
-    def test_transform_core_features(self, caplog) -> None:
+    def test_transform(self, caplog) -> None:
         caplog.set_level(logging.INFO)
+
         logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
         shutil.rmtree("tests/data/development/transformed", ignore_errors=True)
 
-        filepath = "tests/test_config/transform.yaml"
-        config = config_dag(filepath)["development"]
+        config_filepath = "tests/test_config/transform.yaml"
+        mode = "d"
+        config = config_dag(config_filepath)
 
-        gen = TransformDAGGenerator(config)
-        gen.execute()
-        for dag in gen.dags:
-            dag.run()
+        dag = DagBuilder(config=config, mode=mode).build()
+
+        dag.run()
+
+        assert len(os.listdir("tests/data/development/transformed/train")) == 4, logger.error(
+            "Unexpected files in transformed train directory"
+        )
+
+        assert len(os.listdir("tests/data/development/transformed/test")) == 4, logger.error(
+            "Unexpected files in transformed test directory"
+        )
 
         logger.info(
             "\tSuccessfully completed {} {}".format(self.__class__.__name__, inspect.stack()[0][3])

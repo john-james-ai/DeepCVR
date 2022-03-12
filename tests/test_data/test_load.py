@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 4:08:17 pm                                                #
-# Modified : Saturday, March 12th 2022, 1:22:22 am                                                 #
+# Modified : Saturday, March 12th 2022, 9:56:22 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -19,14 +19,14 @@
 # ================================================================================================ #
 
 #%%
-import os
 import pytest
 import logging
 import inspect
-import shutil
 
+# from deepcvr.data.database import Database
 from deepcvr.data.core import DagBuilder
 from deepcvr.utils.config import config_dag
+
 
 # ---------------------------------------------------------------------------- #
 logging.basicConfig(level=logging.INFO)
@@ -34,30 +34,42 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------- #
 
 
-@pytest.mark.extract
-class TestExtract:
-    def test_extract(self, caplog) -> None:
-        caplog.set_level(logging.INFO)
+@pytest.mark.load
+class TestTransform:
+    def test_load(self, caplog) -> None:
+        caplog.set_level(logging.DEBUG)
 
         logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
-        shutil.rmtree("tests/data/development", ignore_errors=True)
-
-        config_filepath = "tests/test_config/extract.yaml"
+        config_filepath = "tests/test_config/load.yaml"
         mode = "d"
         config = config_dag(config_filepath)
+        # Credentials go to context
+        credentials_filepath = "config/credentials.yaml"
+        credentials = config_dag(credentials_filepath)
 
-        dag = DagBuilder(config=config, mode=mode).build()
+        dag = DagBuilder(config=config, mode=mode, context=credentials).build()
 
         dag.run()
 
-        assert len(os.listdir("tests/data/development/external")) == 2, logger.error(
-            "Unexpected files in external directory"
-        )
+        # dbs = ["development_train", "development_test"]
+        # statements = [
+        #     "SELECT * FROM impressions;",
+        #     "SELECT * FROM features;",
+        #     "SELECT * FROM common_feature_groups;",
+        #     "SELECT * FROM common_features;",
+        # ]
+        # credentials_filepath = "config/credentials.yaml"
+        # credentials = config_dag(credentials_filepath)["john"]
 
-        assert len(os.listdir("tests/data/development/raw")) == 4, logger.error(
-            "Unexpected files in raw directory"
-        )
+        # for database in dbs:
+        #     for statement in statements:
+        #         db = Database(database=database, credentials=credentials)
+        #         rows = db.execute(statement=statement)
+        #         assert rows > 100, logger.error(
+        #             "Error in {}. Statement {} returned {}.".format(
+        # database, statement, str(rows))
+        #         )
 
         logger.info(
             "\tSuccessfully completed {} {}".format(self.__class__.__name__, inspect.stack()[0][3])

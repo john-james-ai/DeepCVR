@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 1:28:55 am                                              #
-# Modified : Sunday, February 27th 2022, 7:07:21 pm                                                #
+# Modified : Saturday, March 12th 2022, 9:31:06 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -19,10 +19,10 @@
 # ================================================================================================ #
 #%%
 import logging
-import pymysql
-import inspect
-from deepcvr.utils.config import MySQLConfig
-from deepcvr.data.sql import Query
+from sqlalchemy import create_engine
+import pandas as pd
+from pymysql import connect
+from pymysql.cursors import DictCursor
 
 # ------------------------------------------------------------------------------------------------ #
 logging.basicConfig(level=logging.DEBUG)
@@ -30,52 +30,74 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------------------------ #
 
 
-class DeepCVRDb:
-    def __init__(self, credentials: MySQLConfig) -> None:
+class Database:
+    """Provides database creation and management services
 
-        self._credentials = credentials
+    Args:
+        connection_string (str): Database URL string for the database.
+    """
 
-    def connect(self) -> None:
-        """Creates a connection to the MySQL Database server"""
-
-        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-
-        self._con = pymysql.connect(
-            host=self._credentials.host,
-            user=self._credentials.user,
-            password=self._credentials.password,
-            database=self._credentials.dbname,
+    def __init__(self, database: str, credentials: dict) -> None:
+        self._connection = connect(
+            host=credentials["host"],
+            user=credentials["user"],
+            password=credentials["password"],
+            database=database,
             charset="utf8mb4",
-            cursorclass=pymysql.cursors.DictCursor,
+            cursorclass=DictCursor,
         )
-        self._con.autocommit(True)
 
-        logger.debug("\tCompleting {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+    def __enter__(self) -> None:
+        return self
 
-    def execute(self, query: Query) -> bool:
-        """Executes DDL queries that return no value"""
+    def __exit__(self) -> None:
+        self._connection.close()
 
-        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+    @property
+    def connection(self) -> connect:
+        return self._connection
 
-        cursor = self._con.cursor()
+    def commit(self) -> None:
+        self._connection.commit()
 
-        try:
-            if query.data:
-                cursor.execute(query.sql, query.data)
-            else:
-                cursor.execute(query.sql)
-            self._con.commit()
-            logger.info("{} Successful".format(query.desc))
+    def close(self, commit: bool = True) -> None:
+        if commit:
+            self.commit()
+        self._connection.close()
 
-        except pymysql.MySQLError as e:
-            logger.error(e)
-            self.disconnect()
-            raise Exception(e)
+    def _execute(self, statement: str, params: tuple = (), commit: bool = True) -> connect().cursor:
+        with self._connection as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(statement, params)
+                if commit:
+                    connection.commit()
+                return cursor
 
-        finally:
-            cursor.close()
+    def execute(self, statement: str, params: tuple = (), commit: bool = True) -> int:
+        return self._execute(statement, params, commit)
 
-        logger.debug("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
-    def disconnect(self) -> None:
-        self._con.close()
+class DAO:
+    """Data access object."""
+
+    def __init__(self, connection_string: str) -> None:
+        self._engine = create_engine(connection_string)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._engine.dispose()
+        return True
+
+    def select(self, statement: str, params: tuple = ()) -> pd.DataFrame:
+        with self._engine.connect() as connection:
+            return pd.read_sql_query(sql=statement, con=connection, params=params)
+
+    def selectall(self, table_name: str) -> pd.DataFrame:
+        with self._engine.connect() as connection:
+            return pd.read_sql_table(table_name=table_name, con=connection)
+
+    def insert(self, table_name, data: pd.DataFrame, dtype: dict = {}) -> int:
+        with self._engine.connect() as connection:
+            return data.to_sql(name=table_name, con=connection, dtype=dtype)

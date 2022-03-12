@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Tuesday, February 22nd 2022, 5:37:23 am                                               #
-# Modified : Sunday, February 27th 2022, 10:16:31 am                                               #
+# Modified : Friday, March 11th 2022, 10:45:55 pm                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -23,7 +23,7 @@ COLS_IMPRESSIONS_TBL = [
     "sample_id",
     "click_label",
     "conversion_label",
-    "num_core_features",
+    "num_features",
     "common_features_index",
 ]
 COLS_CORE_FEATURES_TBL = ["sample_id", "feature_name", "feature_id", "feature_value"]
@@ -35,11 +35,11 @@ COLS_CORE_DATASET = [
     "click_label",
     "conversion_label",
     "common_features_index",
-    "num_core_features",
+    "num_features",
     "features_list",
 ]
 COLS_COMMON_FEATURES_DATASET = [
     "common_features_index",
-    "num_common_features",
+    "num_features",
     "features_list",
 ]
