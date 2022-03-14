@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Sunday, February 27th 2022, 10:11:02 am                                               #
-# Modified : Saturday, March 12th 2022, 6:21:09 am                                                 #
+# Modified : Sunday, March 13th 2022, 5:36:02 pm                                                   #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -29,12 +29,17 @@ from typing import Union, Any
 
 from deepcvr.data.core import Task
 from deepcvr.utils.io import CsvIO
+from deepcvr.data.metabase import Asset, Event, EventParams
 
 # ------------------------------------------------------------------------------------------------ #
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
+    datefmt="%m-%d-%Y %H:%M",
+    filename="logs/metevent.log",
+    filemode="w",
+)
 logger = logging.getLogger(__name__)
-
-
 # ------------------------------------------------------------------------------------------------ #
 #                                    TRANSFORM CORE                                                #
 # ------------------------------------------------------------------------------------------------ #
@@ -74,6 +79,22 @@ class TransformImpressionsTask(Task):
         pdf = result.toPandas()
 
         io.save(pdf, self._params["output_filepath"])
+
+    def _register_event(self) -> None:
+        """Registers the event with metadata"""
+        # Load asset and event tables
+        asset = Asset()
+        asset.add(name="impressions", desc="impressions table", uri=self._params["output_filepath"])
+        event = Event()
+        params = EventParams(
+            module=__name__,
+            classname=__class__.__name__,
+            method="execute",
+            action="transform_impressions",
+            param1=self._params["input_filepath"],
+            param2=self._params["output_filepath"],
+        )
+        event.add(event=params)
 
 
 # ------------------------------------------------------------------------------------------------ #
@@ -152,6 +173,26 @@ class TransformCommonFeatureGroupsTask(Task):
 
         io.save(pdf, self._params["output_filepath"])
 
+    def _register_event(self) -> None:
+        """Registers the event with metadata"""
+        # Load asset and event tables
+        asset = Asset()
+        asset.add(
+            name="common_feature_groups",
+            desc="feature groups table",
+            uri=self._params["output_filepath"],
+        )
+        event = Event()
+        params = EventParams(
+            module=__name__,
+            classname=__class__.__name__,
+            method="execute",
+            action="transform_common_feature_groups",
+            param1=self._params["input_filepath"],
+            param2=self._params["output_filepath"],
+        )
+        event.add(event=params)
+
 
 # ------------------------------------------------------------------------------------------------ #
 schema_common_feature_groups = StructType(
@@ -213,6 +254,22 @@ class TransformFeaturesTask(Task):
         pdf = result.toPandas()
 
         io.save(pdf, self._params["output_filepath"])
+
+    def _register_event(self) -> None:
+        """Registers the event with metadata"""
+        # Load asset and event tables
+        asset = Asset()
+        asset.add(name="features", desc="features table", uri=self._params["output_filepath"])
+        event = Event()
+        params = EventParams(
+            module=__name__,
+            classname=__class__.__name__,
+            method="execute",
+            action="transform_features",
+            param1=self._params["input_filepath"],
+            param2=self._params["output_filepath"],
+        )
+        event.add(event=params)
 
 
 # ------------------------------------------------------------------------------------------------ #
@@ -286,6 +343,26 @@ class TransformCommonFeaturesTask(Task):
         pdf = result.toPandas()
 
         io.save(pdf, self._params["output_filepath"])
+
+    def _register_event(self) -> None:
+        """Registers the event with metadata"""
+        # Load asset and event tables
+        asset = Asset()
+        asset.add(
+            name="common_features",
+            desc="common features table",
+            uri=self._params["output_filepath"],
+        )
+        event = Event()
+        params = EventParams(
+            module=__name__,
+            classname=__class__.__name__,
+            method="execute",
+            action="transform_common_features",
+            param1=self._params["input_filepath"],
+            param2=self._params["output_filepath"],
+        )
+        event.add(event=params)
 
 
 # ------------------------------------------------------------------------------------------------ #

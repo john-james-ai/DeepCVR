@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 1:28:55 am                                              #
-# Modified : Saturday, March 12th 2022, 9:31:06 am                                                 #
+# Modified : Sunday, March 13th 2022, 3:54:28 pm                                                   #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -25,7 +25,6 @@ from pymysql import connect
 from pymysql.cursors import DictCursor
 
 # ------------------------------------------------------------------------------------------------ #
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------------------------ #
 

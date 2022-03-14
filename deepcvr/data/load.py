@@ -11,13 +11,14 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, March 12th 2022, 5:34:59 am                                                 #
-# Modified : Saturday, March 12th 2022, 12:30:03 pm                                                #
+# Modified : Sunday, March 13th 2022, 6:05:29 pm                                                   #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
 # Copyright: (c) 2022 Bryant St. Labs                                                              #
 # ================================================================================================ #
 """Tasks that complete the Load phase of the ETL DAG"""
+import os
 import logging
 import sqlalchemy
 import inspect
@@ -28,9 +29,10 @@ from typing import Any
 from deepcvr.data.core import Task
 from deepcvr.utils.io import CsvIO
 from deepcvr.data.ddl import DDL
+from deepcvr.data.metabase import Event, EventParams, Asset
 
 # ------------------------------------------------------------------------------------------------ #
-logging.basicConfig(level=logging.DEBUG)
+logcvr = logging.getLogger("deepcvr")
 logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------------------------ #
 
@@ -51,6 +53,10 @@ class DbDefine(Task):
     def execute(self, context: Any = None) -> None:
         logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
+        # Instantiate asset and event objects
+        asset = Asset()
+        event = Event()
+
         # Obtain credentials for mysql database from context
         credentials = context["john"]
 
@@ -69,11 +75,40 @@ class DbDefine(Task):
                 for statement in statements:
                     logger.debug("\t\tExecuting {}".format(statement))
                     cursor.execute(DDL[statement])
+
+                    asset.add(name=statement, desc=None, uri=None)
+                    params = EventParams(
+                        module=__name__,
+                        classname=__class__.__name__,
+                        method="execute",
+                        action=self._task_name,
+                    )
+                    event.add(event=params)
                 connection.commit()
 
             connection.close()
 
         logger.debug("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+
+    def _register_event(self) -> None:
+        """Registers the event with metadata"""
+        # Load asset and event tables
+        asset = Asset()
+        asset.add(
+            name="common_features",
+            desc="common features table",
+            uri=self._params["output_filepath"],
+        )
+        event = Event()
+        params = EventParams(
+            module=__name__,
+            classname=__class__.__name__,
+            method="execute",
+            action="transform_common_features",
+            param1=self._params["input_filepath"],
+            param2=self._params["output_filepath"],
+        )
+        event.add(event=params)
 
 
 # ------------------------------------------------------------------------------------------------ #
@@ -87,6 +122,10 @@ class DataLoader(Task):
 
     def execute(self, context: Any = None) -> None:
         logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+
+        # Instantiate asset and event objects
+        asset = Asset()
+        event = Event()
 
         io = CsvIO()
 
@@ -109,6 +148,20 @@ class DataLoader(Task):
                 rows_affected = data.to_sql(
                     name=table_name, con=engine, index=False, if_exists="replace", dtype=dtypes,
                 )
+
+                # Register asset and event
+                asset.add(
+                    name=os.path.basename(specification["filepath"]),
+                    desc=None,
+                    uri=specification["filepath"],
+                )
+                params = EventParams(
+                    module=__file__,
+                    classname=__class__.__name__,
+                    method="execute",
+                    action="load_table",
+                )
+                event.add(event=params)
 
                 logger.info(
                     "\t\tTable {} in {} is loaded with {} rows.".format(

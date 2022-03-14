@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, February 14th 2022, 12:32:13 pm                                               #
-# Modified : Saturday, March 12th 2022, 6:18:56 am                                                 #
+# Modified : Sunday, March 13th 2022, 5:22:47 pm                                                   #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -30,11 +30,18 @@ from typing import Any
 from deepcvr.data.core import Task
 from deepcvr.utils.io import CsvIO
 from deepcvr.data import COLS_CORE_DATASET, COLS_COMMON_FEATURES_DATASET
+from deepcvr.data.metabase import Asset, Event
+from deepcvr.data.metabase import EventParams
 
 # ------------------------------------------------------------------------------------------------ #
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
+    datefmt="%m-%d-%Y %H:%M",
+    filename="logs/metevent.log",
+    filemode="w",
+)
 logger = logging.getLogger(__name__)
-
 # ------------------------------------------------------------------------------------------------ #
 
 
@@ -49,6 +56,7 @@ class S3Downloader(Task):
           key (str): The access key to the S3 bucket
           password (str): The secret access key to the S3 bucket
           folder (str): The folder within the bucket for the data
+          destination (str): The folder to which the data is downloaded
           force (bool): If True, will execute and overwrite existing data.
     """
 
@@ -66,7 +74,11 @@ class S3Downloader(Task):
 
     def execute(self, context: Any = None) -> Any:
 
-        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+        logger.info(
+            "Started {} {} Source: {} Destination: {}".format(
+                self.__class__.__name__, inspect.stack()[0][3], self._bucket, self._destination,
+            ),
+        )
 
         object_keys = self._list_bucket_contents()
 
@@ -77,6 +89,8 @@ class S3Downloader(Task):
 
         os.makedirs(self._destination, exist_ok=True)
         logger.debug("Created {} directory".format(self._destination))
+
+        asset = Asset()
 
         for object_key in object_keys:
             destination = os.path.join(self._destination, os.path.basename(object_key))
@@ -90,7 +104,10 @@ class S3Downloader(Task):
                     "Bucket resource {} already exists and was not downloaded.".format(destination)
                 )
 
-        logger.debug("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+            desc = object_key + " from ALI-CCP Dataset"
+            asset.add(name=object_key, desc=desc, uri=destination)
+
+        logger.info("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
     def _list_bucket_contents(self) -> list:
         """Returns a list of objects in the designated bucket"""
@@ -133,6 +150,28 @@ class S3Downloader(Task):
     def _download_callback(self, size):
         self._progressbar.update(self._progressbar.currval + size)
 
+    def _register_events(self) -> None:
+        """Registers the event with metadata"""
+        # Load asset and event tables
+        asset = Asset()
+        event = Event()
+
+        files = os.listdir(self._destination)
+        for file in files:
+            name = os.path.basename(file)
+            desc = name + " external source data"
+            uri = os.path.join(self._destination, file)
+            asset.add(name=name, desc=desc, uri=uri)
+            params = EventParams(
+                module=__name__,
+                method="execute",
+                classname=__class__.__name__,
+                action="create_data_source",
+                param1=name,
+                param2=self._destination,
+            )
+            event.add(event=params)
+
 
 # ------------------------------------------------------------------------------------------------ #
 
@@ -158,10 +197,17 @@ class Decompress(Task):
 
     def execute(self, context: Any = None) -> Any:
         """Extracts and stores the data, then pushes filepaths to xCom."""
+        logger.info(
+            "Started {} {} Source: {} Destination: {}".format(
+                self.__class__.__name__, inspect.stack()[0][3], self._source, self._destination,
+            ),
+        )
         logger.debug("\tSource: {}\tDestination: {}".format(self._source, self._destination))
 
         # Create destination if it doesn't exist
         os.makedirs(self._destination, exist_ok=True)
+
+        # Obtain the event
 
         # If all 4 raw files exist, it is assumed that the data have been downloaded
         n_files = len(os.listdir(self._destination))
@@ -173,6 +219,9 @@ class Decompress(Task):
                 logger.debug("Just opened {}".format(filepath))
                 tar.extractall(self._destination)
 
+        self._register_events()
+        logger.info("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+
     def _not_exists_or_force(self, member_name: str) -> bool:
         """Returns true if the file doesn't exist or force is True."""
         filepath = os.path.join(self._destination, member_name)
@@ -181,6 +230,28 @@ class Decompress(Task):
     def _is_csvfile(self, filename: str) -> bool:
         """Returns True if filename is a csv file, returns False otherwise."""
         return ".csv" in filename
+
+    def _register_events(self) -> None:
+        """Registers the event with metadata"""
+        # Load asset and event tables
+        asset = Asset()
+        event = Event()
+
+        files = os.listdir(self._destination)
+        for file in files:
+            name = os.path.basename(file)
+            desc = name + " raw data"
+            uri = os.path.join(self._destination, file)
+            asset.add(name=name, desc=desc, uri=uri)
+            params = EventParams(
+                module=__name__,
+                method="execute",
+                classname=__class__.__name__,
+                action="create_raw_data",
+                param1=name,
+                param2=self._destination,
+            )
+            event.add(event=params)
 
 
 # ------------------------------------------------------------------------------------------------ #
@@ -209,6 +280,16 @@ class Stage(Task):
 
     def execute(self, context: Any = None) -> Any:
 
+        logger.info(
+            "Started {} {} Source: {} Destination: {} Partitions: {}".format(
+                self.__class__.__name__,
+                inspect.stack()[0][3],
+                self._source,
+                self._destination,
+                str(self._n_partitions),
+            )
+        )
+
         io = CsvIO()
 
         filenames = os.listdir(self._source)
@@ -231,8 +312,35 @@ class Stage(Task):
 
                 io.save(data, filepath=destination, header=True, index=False)
 
+            logger.info("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+
     def _get_names(self, filename: str) -> list:
         if "common" in filename:
             return COLS_COMMON_FEATURES_DATASET
         else:
             return COLS_CORE_DATASET
+
+    def _register_events(self) -> None:
+        """Registers the event with metadata"""
+        # Load asset and event tables
+        asset = Asset()
+        event = Event()
+
+        files = os.listdir(self._destination)
+        for file in files:
+            name = os.path.basename(file)
+            desc = name + " staged data"
+            uri = os.path.join(self._destination, file)
+            asset.add(name=name, desc=desc, uri=uri)
+            params = EventParams(
+                module=__name__,
+                method="execute",
+                classname=__class__.__name__,
+                action="create_staged_data",
+                param1=name,
+                param2=self._destination,
+            )
+            event.add(event=params)
+
+
+# %%

@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 4:08:17 pm                                                #
-# Modified : Saturday, March 12th 2022, 9:56:22 am                                                 #
+# Modified : Saturday, March 12th 2022, 1:51:20 pm                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.mark.load
-class TestTransform:
+class TestLoad:
     def test_load(self, caplog) -> None:
         caplog.set_level(logging.DEBUG)
 
