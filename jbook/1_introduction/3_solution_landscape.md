@@ -7,7 +7,7 @@ jupytext:
     jupytext_version: 1.10.3
 kernelspec:
   display_name: Python 3
-  language: python
+  language: python3
   name: python3
 ---
 # Solution Landscape
