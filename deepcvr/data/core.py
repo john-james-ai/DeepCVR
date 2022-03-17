@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Tuesday, March 8th 2022, 8:48:19 pm                                                   #
-# Modified : Sunday, March 13th 2022, 2:10:15 pm                                                   #
+# Modified : Thursday, March 17th 2022, 2:41:33 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -21,11 +21,7 @@
 from abc import ABC, abstractmethod
 import importlib
 from typing import Any
-import logging
 
-# ------------------------------------------------------------------------------------------------ #
-logger = logging.getLogger(__name__)
-logcvr = logging.getLogger("deepcvr")
 # ------------------------------------------------------------------------------------------------ #
 
 
@@ -33,13 +29,14 @@ class Task(ABC):
     """Abstract class for task classes
 
     Args:
-        task_id: Sequence number for the task in its dag
-        task_name: Human readable name
-        params: The parameters the task requires
+        config: Defines the configuration for the task and contains three nexted dictionaries:
+        - header: contains the task_id, task_name
+        - params: list of dictionaries containing parameters for the task
+        - asset: list of assets created by the task
 
     """
 
-    def __init__(self, task_id: int, task_name: str, params: Any) -> None:
+    def __init__(self, task_id: int, task_name: str, params: list) -> None:
         self._task_id = task_id
         self._task_name = task_name
         self._params = params
@@ -65,12 +62,6 @@ class Task(ABC):
 
     @abstractmethod
     def execute(self) -> Any:
-        """Executes the task
-
-        Args:
-            data (pd.DataFrame): Input data. Optional
-
-        """
         pass
 
 
@@ -95,16 +86,7 @@ class Dag:
 
     def run(self) -> None:
         for task in self._tasks:
-            logger.info("Task {}: {} started.".format(str(task.task_id), task.task_name))
             task.execute(context=self._context)
-            logger.info("Task {}: {} completed.".format(str(task.task_id), task.task_name))
-
-    def print_tasks(self) -> None:
-        for task in self._tasks:
-            logger.info(task.task_id)
-            logger.info(task.task_name)
-            logger.info(task.params)
-            logger.info("\n")
 
 
 # ------------------------------------------------------------------------------------------------ #
@@ -121,12 +103,10 @@ class DagBuilder:
           module: The module containing the task
           task_name: A name for the task
           task_params: Any parameters required by the task
-        mode (str): 'd' for development or 'p' for production.
     """
 
-    def __init__(self, config: dict, mode: str = "d", context: dict = None) -> None:
+    def __init__(self, config: dict, context: dict = None) -> None:
         self._config = config
-        self._mode = "production" if mode == "p" else "development"
         self._context = context
         self._dag = None
 
@@ -136,14 +116,12 @@ class DagBuilder:
 
     def build(self) -> Dag:
 
-        config = self._config[self._mode]
-
-        dag_id = config["dag_id"]
-        dag_description = config["dag_description"]
+        dag_id = self._config["dag_id"]
+        dag_description = self._config["dag_description"]
 
         tasks = []
 
-        for _, task_config in config["tasks"].items():
+        for _, task_config in self._config["tasks"].items():
 
             # Create task object from string using importlib
 
@@ -155,8 +133,6 @@ class DagBuilder:
                 task_name=task_config["task_name"],
                 params=task_config["task_params"],
             )
-
-            logger.debug(task_instance)
 
             tasks.append(task_instance)
 

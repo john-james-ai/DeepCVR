@@ -42,4 +42,4 @@ sudo apt-get update
 sudo apt-get install mysql-server
 
 # Login
-mysql -u 'john'
+mysql -u john -p

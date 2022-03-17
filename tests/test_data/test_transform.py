@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 4:08:17 pm                                                #
-# Modified : Saturday, March 12th 2022, 1:54:38 am                                                 #
+# Modified : Thursday, March 17th 2022, 1:56:49 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -45,20 +45,21 @@ class TestTransform:
         shutil.rmtree("tests/data/development/transformed", ignore_errors=True)
 
         config_filepath = "tests/test_config/transform.yaml"
-        mode = "d"
-        config = config_dag(config_filepath)
+        mode = "test"
+        config = config_dag(config_filepath)[mode]
 
-        dag = DagBuilder(config=config, mode=mode).build()
+        dag = DagBuilder(config=config).build()
 
         dag.run()
 
-        assert len(os.listdir("tests/data/development/transformed/train")) == 4, logger.error(
-            "Unexpected files in transformed train directory"
-        )
-
-        assert len(os.listdir("tests/data/development/transformed/test")) == 4, logger.error(
-            "Unexpected files in transformed test directory"
-        )
+        if mode == "train":
+            assert len(os.listdir("tests/data/transformed/train")) == 4, logger.error(
+                "Unexpected files in transformed train directory"
+            )
+        else:
+            assert len(os.listdir("tests/data/transformed/test")) == 4, logger.error(
+                "Unexpected files in transformed test directory"
+            )
 
         logger.info(
             "\tSuccessfully completed {} {}".format(self.__class__.__name__, inspect.stack()[0][3])

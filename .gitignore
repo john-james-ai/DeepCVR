@@ -10,6 +10,7 @@ __pycache__/
 
 # Config
 *.*yaml
+**/.*yaml
 
 # Data
 *.csv
@@ -18,6 +19,9 @@ __pycache__/
 notes/*.*
 */_build/
 */lab/
+
+# Logs
+**/logs*
 
 # Installation files
 **/*.deb

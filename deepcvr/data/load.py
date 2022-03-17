@@ -11,29 +11,67 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, March 12th 2022, 5:34:59 am                                                 #
-# Modified : Sunday, March 13th 2022, 6:05:29 pm                                                   #
+# Modified : Thursday, March 17th 2022, 2:34:53 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
 # Copyright: (c) 2022 Bryant St. Labs                                                              #
 # ================================================================================================ #
 """Tasks that complete the Load phase of the ETL DAG"""
-import os
-import logging
 import sqlalchemy
-import inspect
 from pymysql import connect
 from pymysql.cursors import DictCursor
 from typing import Any
 
 from deepcvr.data.core import Task
 from deepcvr.utils.io import CsvIO
-from deepcvr.data.ddl import DDL
-from deepcvr.data.metabase import Event, EventParams, Asset
+from deepcvr.utils.decorators import task_event
 
 # ------------------------------------------------------------------------------------------------ #
-logcvr = logging.getLogger("deepcvr")
-logger = logging.getLogger(__name__)
+#                                DATABASE DEFINITION LANGUAGE                                      #
+# ------------------------------------------------------------------------------------------------ #
+"""Defines the DDL for the ETL process"""
+DDL = {}
+
+DDL["foreign_key_checks_off"] = """SET FOREIGN_KEY_CHECKS = 0;"""
+DDL["foreign_key_checks_on"] = """SET FOREIGN_KEY_CHECKS = 1;"""
+
+# Drop Foreign Key Constraints
+DDL["drop_constraint_features"] = """ALTER TABLE features DROP FOREIGN KEY fk_features;"""
+DDL[
+    "drop_constraint_common_features"
+] = """ALTER TABLE common_features DROP FOREIGN KEY FK_tbl_common_features_ibfk_1;"""
+
+
+# Drop Databases
+DDL["drop_development_train_db"] = """DROP DATABASE IF EXISTS deepcvr_development_train;"""
+DDL["drop_development_test_db"] = """DROP DATABASE IF EXISTS deepcvr_development_test;"""
+DDL["drop_production_train_db"] = """DROP DATABASE IF EXISTS deepcvr_train;"""
+DDL["drop_production_test_db"] = """DROP DATABASE IF EXISTS deepcvr_test;"""
+
+# Create Databases
+DDL["create_development_train_db"] = """CREATE DATABASE deepcvr_development_train;"""
+DDL["create_development_test_db"] = """CREATE DATABASE deepcvr_development_test;"""
+DDL["create_production_train_db"] = """CREATE DATABASE deepcvr_train;"""
+DDL["create_production_test_db"] = """CREATE DATABASE deepcvr_test;"""
+
+DDL[
+    "add_primary_key_impressions"
+] = """
+ALTER TABLE impressions ADD PRIMARY KEY(sample_id);
+"""
+
+DDL[
+    "add_foreign_key_constraint_1"
+] = """
+ALTER TABLE features
+ADD CONSTRAINT fk_features
+FOREIGN KEY (sample_id)
+REFERENCES impressions(sample_id)
+"""
+
+# ------------------------------------------------------------------------------------------------ #
+#                                  DATABASE DEFINITION CLASS                                       #
 # ------------------------------------------------------------------------------------------------ #
 
 
@@ -50,18 +88,13 @@ class DbDefine(Task):
     def __init__(self, task_id: int, task_name: str, params: dict) -> None:
         super(DbDefine, self).__init__(task_id=task_id, task_name=task_name, params=params)
 
+    @task_event
     def execute(self, context: Any = None) -> None:
-        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-
-        # Instantiate asset and event objects
-        asset = Asset()
-        event = Event()
 
         # Obtain credentials for mysql database from context
         credentials = context["john"]
 
         for database, statements in self._params.items():
-            logger.debug("\tLogging into {} database".format(database))
             connection = connect(
                 host=credentials["host"],
                 user=credentials["user"],
@@ -73,44 +106,14 @@ class DbDefine(Task):
 
             with connection.cursor() as cursor:
                 for statement in statements:
-                    logger.debug("\t\tExecuting {}".format(statement))
                     cursor.execute(DDL[statement])
-
-                    asset.add(name=statement, desc=None, uri=None)
-                    params = EventParams(
-                        module=__name__,
-                        classname=__class__.__name__,
-                        method="execute",
-                        action=self._task_name,
-                    )
-                    event.add(event=params)
                 connection.commit()
 
             connection.close()
 
-        logger.debug("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
-    def _register_event(self) -> None:
-        """Registers the event with metadata"""
-        # Load asset and event tables
-        asset = Asset()
-        asset.add(
-            name="common_features",
-            desc="common features table",
-            uri=self._params["output_filepath"],
-        )
-        event = Event()
-        params = EventParams(
-            module=__name__,
-            classname=__class__.__name__,
-            method="execute",
-            action="transform_common_features",
-            param1=self._params["input_filepath"],
-            param2=self._params["output_filepath"],
-        )
-        event.add(event=params)
-
-
+# ------------------------------------------------------------------------------------------------ #
+#                                     DATABASE LOADER                                              #
 # ------------------------------------------------------------------------------------------------ #
 
 
@@ -120,53 +123,22 @@ class DataLoader(Task):
     def __init__(self, task_id: int, task_name: str, params: dict) -> None:
         super(DataLoader, self).__init__(task_id=task_id, task_name=task_name, params=params)
 
+    @task_event
     def execute(self, context: Any = None) -> None:
-        logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-
-        # Instantiate asset and event objects
-        asset = Asset()
-        event = Event()
 
         io = CsvIO()
 
-        for database, config in self._params.items():
-            logger.debug("\t\tLogging into {} database".format(database))
-            engine = sqlalchemy.create_engine(context[config["connection_string"]])
+        engine = sqlalchemy.create_engine(
+            context["database_uri"][self._params["connection_string"]]
+        )
 
-            for table_name, specification in config["tables"].items():
-                logger.debug(
-                    "\t\tReading {} file from {}.".format(table_name, specification["filepath"])
-                )
-                data = io.load(filepath=specification["filepath"])
+        data = io.load(filepath=self._params["filepath"])
 
-                # Convert strings to sqlalchemy datatypes
-                dtypes = specification["dtypes"]
-                for column, dtype in dtypes.items():
-                    dtypes[column] = eval(dtypes[column])
+        # Convert strings to sqlalchemy datatypes
+        dtypes = self._params["dtypes"]
+        for column, _ in self._params["dtypes"].items():
+            dtypes[column] = eval(dtypes[column])
 
-                logger.debug("\t\tLoading {} table.".format(table_name))
-                rows_affected = data.to_sql(
-                    name=table_name, con=engine, index=False, if_exists="replace", dtype=dtypes,
-                )
-
-                # Register asset and event
-                asset.add(
-                    name=os.path.basename(specification["filepath"]),
-                    desc=None,
-                    uri=specification["filepath"],
-                )
-                params = EventParams(
-                    module=__file__,
-                    classname=__class__.__name__,
-                    method="execute",
-                    action="load_table",
-                )
-                event.add(event=params)
-
-                logger.info(
-                    "\t\tTable {} in {} is loaded with {} rows.".format(
-                        table_name, database, str(rows_affected)
-                    )
-                )
-
-        logger.info("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+        data.to_sql(
+            name=self._params["table"], con=engine, index=False, if_exists="replace", dtype=dtypes,
+        )

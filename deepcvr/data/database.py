@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 1:28:55 am                                              #
-# Modified : Sunday, March 13th 2022, 3:54:28 pm                                                   #
+# Modified : Thursday, March 17th 2022, 2:18:51 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -33,7 +33,8 @@ class Database:
     """Provides database creation and management services
 
     Args:
-        connection_string (str): Database URL string for the database.
+        database (str): The database to connect
+        credentials (dict): Dictionary containing the database access credentials
     """
 
     def __init__(self, database: str, credentials: dict) -> None:

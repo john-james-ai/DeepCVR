@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, February 14th 2022, 12:32:13 pm                                               #
-# Modified : Sunday, March 13th 2022, 5:22:47 pm                                                   #
+# Modified : Wednesday, March 16th 2022, 7:10:39 pm                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -20,28 +20,22 @@
 #%%
 import os
 import boto3
-import logging
 import progressbar
-import inspect
 import tarfile
 from botocore.exceptions import NoCredentialsError
 from typing import Any
+from dotenv import load_dotenv
 
 from deepcvr.data.core import Task
 from deepcvr.utils.io import CsvIO
 from deepcvr.data import COLS_CORE_DATASET, COLS_COMMON_FEATURES_DATASET
-from deepcvr.data.metabase import Asset, Event
-from deepcvr.data.metabase import EventParams
+from deepcvr.utils.decorators import event
 
 # ------------------------------------------------------------------------------------------------ #
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
-    datefmt="%m-%d-%Y %H:%M",
-    filename="logs/metevent.log",
-    filemode="w",
-)
-logger = logging.getLogger(__name__)
+# Uncomment for debugging
+# import logging
+# logging.basicConfig(level=logging.DEBUG)
+# logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------------------------ #
 
 
@@ -64,72 +58,46 @@ class S3Downloader(Task):
         super(S3Downloader, self).__init__(task_id=task_id, task_name=task_name, params=params)
 
         self._bucket = params["bucket"]
-        self._key = params["key"]
-        self._password = params["password"]
         self._folder = params["folder"]
         self._destination = params["destination"]
         self._force = params["force"]
 
         self._progressbar = None
 
+    @event
     def execute(self, context: Any = None) -> Any:
 
-        logger.info(
-            "Started {} {} Source: {} Destination: {}".format(
-                self.__class__.__name__, inspect.stack()[0][3], self._bucket, self._destination,
-            ),
-        )
+        load_dotenv()
 
         object_keys = self._list_bucket_contents()
 
-        self._s3 = boto3.client(
-            "s3", aws_access_key_id=self._key, aws_secret_access_key=self._password
-        )
-        logger.debug("Created boto3 client.")
+        s3access = os.getenv("S3ACCESS")
+        s3password = os.getenv("S3PASSWORD")
+
+        self._s3 = boto3.client("s3", aws_access_key_id=s3access, aws_secret_access_key=s3password)
 
         os.makedirs(self._destination, exist_ok=True)
-        logger.debug("Created {} directory".format(self._destination))
-
-        asset = Asset()
 
         for object_key in object_keys:
             destination = os.path.join(self._destination, os.path.basename(object_key))
 
-            logger.debug("Pending download of {}".format(destination))
-
             if not os.path.exists(destination) or self._force:
                 self._download(object_key, destination)
-            else:
-                logger.debug(
-                    "Bucket resource {} already exists and was not downloaded.".format(destination)
-                )
-
-            desc = object_key + " from ALI-CCP Dataset"
-            asset.add(name=object_key, desc=desc, uri=destination)
-
-        logger.info("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
     def _list_bucket_contents(self) -> list:
         """Returns a list of objects in the designated bucket"""
-        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
         objects = []
         s3 = boto3.resource("s3")
         bucket = s3.Bucket(self._bucket)
         for object in bucket.objects.filter(Delimiter="/t", Prefix=self._folder):
             if not object.key.endswith("/"):  # Skip objects that are just the folder name
-                logger.debug("Found {} in {}".format(object.key, self._folder))
                 objects.append(object.key)
 
-        logger.debug("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
         return objects
 
     def _download(self, object_key: str, destination: str) -> None:
         """Downloads object designated by the object ke if not exists or force is True"""
-        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-
-        logger.debug("Downloading {} from bucket {}".format(object_key, self._bucket))
-
         response = self._s3.head_object(Bucket=self._bucket, Key=object_key)
         size = response["ContentLength"]
 
@@ -140,37 +108,13 @@ class S3Downloader(Task):
             self._s3.download_file(
                 self._bucket, object_key, destination, Callback=self._download_callback
             )
-            logger.debug("Download of {} Complete!".format(object_key))
+
         except NoCredentialsError:
             msg = "Credentials not available for {} bucket".format(self._bucket)
             raise NoCredentialsError(msg)
 
-        logger.debug("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
-
     def _download_callback(self, size):
         self._progressbar.update(self._progressbar.currval + size)
-
-    def _register_events(self) -> None:
-        """Registers the event with metadata"""
-        # Load asset and event tables
-        asset = Asset()
-        event = Event()
-
-        files = os.listdir(self._destination)
-        for file in files:
-            name = os.path.basename(file)
-            desc = name + " external source data"
-            uri = os.path.join(self._destination, file)
-            asset.add(name=name, desc=desc, uri=uri)
-            params = EventParams(
-                module=__name__,
-                method="execute",
-                classname=__class__.__name__,
-                action="create_data_source",
-                param1=name,
-                param2=self._destination,
-            )
-            event.add(event=params)
 
 
 # ------------------------------------------------------------------------------------------------ #
@@ -195,19 +139,12 @@ class Decompress(Task):
         self._destination = params["destination"]
         self._force = params["force"]
 
+    @event
     def execute(self, context: Any = None) -> Any:
         """Extracts and stores the data, then pushes filepaths to xCom."""
-        logger.info(
-            "Started {} {} Source: {} Destination: {}".format(
-                self.__class__.__name__, inspect.stack()[0][3], self._source, self._destination,
-            ),
-        )
-        logger.debug("\tSource: {}\tDestination: {}".format(self._source, self._destination))
 
         # Create destination if it doesn't exist
         os.makedirs(self._destination, exist_ok=True)
-
-        # Obtain the event
 
         # If all 4 raw files exist, it is assumed that the data have been downloaded
         n_files = len(os.listdir(self._destination))
@@ -216,11 +153,7 @@ class Decompress(Task):
             for filename in filenames:
                 filepath = os.path.join(self._source, filename)
                 tar = tarfile.open(filepath, "r:gz")
-                logger.debug("Just opened {}".format(filepath))
                 tar.extractall(self._destination)
-
-        self._register_events()
-        logger.info("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
     def _not_exists_or_force(self, member_name: str) -> bool:
         """Returns true if the file doesn't exist or force is True."""
@@ -230,28 +163,6 @@ class Decompress(Task):
     def _is_csvfile(self, filename: str) -> bool:
         """Returns True if filename is a csv file, returns False otherwise."""
         return ".csv" in filename
-
-    def _register_events(self) -> None:
-        """Registers the event with metadata"""
-        # Load asset and event tables
-        asset = Asset()
-        event = Event()
-
-        files = os.listdir(self._destination)
-        for file in files:
-            name = os.path.basename(file)
-            desc = name + " raw data"
-            uri = os.path.join(self._destination, file)
-            asset.add(name=name, desc=desc, uri=uri)
-            params = EventParams(
-                module=__name__,
-                method="execute",
-                classname=__class__.__name__,
-                action="create_raw_data",
-                param1=name,
-                param2=self._destination,
-            )
-            event.add(event=params)
 
 
 # ------------------------------------------------------------------------------------------------ #
@@ -278,17 +189,8 @@ class Stage(Task):
         self._n_partitions = params["n_partitions"]
         self._force = params["force"]
 
+    @event
     def execute(self, context: Any = None) -> Any:
-
-        logger.info(
-            "Started {} {} Source: {} Destination: {} Partitions: {}".format(
-                self.__class__.__name__,
-                inspect.stack()[0][3],
-                self._source,
-                self._destination,
-                str(self._n_partitions),
-            )
-        )
 
         io = CsvIO()
 
@@ -306,41 +208,13 @@ class Stage(Task):
 
                 data["partition"] = reindexed.index % self._n_partitions
 
-                logger.debug(
-                    "Staging {} with {} observations".format(destination, str(data.shape[0]))
-                )
-
                 io.save(data, filepath=destination, header=True, index=False)
-
-            logger.info("\tCompleted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
     def _get_names(self, filename: str) -> list:
         if "common" in filename:
             return COLS_COMMON_FEATURES_DATASET
         else:
             return COLS_CORE_DATASET
-
-    def _register_events(self) -> None:
-        """Registers the event with metadata"""
-        # Load asset and event tables
-        asset = Asset()
-        event = Event()
-
-        files = os.listdir(self._destination)
-        for file in files:
-            name = os.path.basename(file)
-            desc = name + " staged data"
-            uri = os.path.join(self._destination, file)
-            asset.add(name=name, desc=desc, uri=uri)
-            params = EventParams(
-                module=__name__,
-                method="execute",
-                classname=__class__.__name__,
-                action="create_staged_data",
-                param1=name,
-                param2=self._destination,
-            )
-            event.add(event=params)
 
 
 # %%

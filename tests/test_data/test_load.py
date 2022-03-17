@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 4:08:17 pm                                                #
-# Modified : Saturday, March 12th 2022, 1:51:20 pm                                                 #
+# Modified : Thursday, March 17th 2022, 2:26:36 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -42,34 +42,26 @@ class TestLoad:
         logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
         config_filepath = "tests/test_config/load.yaml"
-        mode = "d"
-        config = config_dag(config_filepath)
+        mode = "test"
+        config = config_dag(config_filepath)[mode]
         # Credentials go to context
-        credentials_filepath = "config/credentials.yaml"
+        credentials_filepath = "tests/test_config/credentials.yaml"
         credentials = config_dag(credentials_filepath)
 
-        dag = DagBuilder(config=config, mode=mode, context=credentials).build()
+        dag = DagBuilder(config=config, context=credentials).build()
 
         dag.run()
 
-        # dbs = ["development_train", "development_test"]
-        # statements = [
-        #     "SELECT * FROM impressions;",
-        #     "SELECT * FROM features;",
-        #     "SELECT * FROM common_feature_groups;",
-        #     "SELECT * FROM common_features;",
-        # ]
-        # credentials_filepath = "config/credentials.yaml"
-        # credentials = config_dag(credentials_filepath)["john"]
-
-        # for database in dbs:
-        #     for statement in statements:
-        #         db = Database(database=database, credentials=credentials)
-        #         rows = db.execute(statement=statement)
-        #         assert rows > 100, logger.error(
-        #             "Error in {}. Statement {} returned {}.".format(
-        # database, statement, str(rows))
-        #         )
+        # tables = ["impressions", "features", "common_feature_groups", "common_features"]
+        # dao = DAO(connection_string=credentials["database_uri"][mode])
+        # for table in tables:
+        #     start = datetime.now()
+        #     df = dao.selectall(table_name=table)
+        #     duration = datetime.now() - start
+        #     msg = "Read {} rows from {} table in {} seconds".format(
+        #         str(df.shape[0]), table, str(duration.total_seconds())
+        #     )
+        #     logger.info(msg)
 
         logger.info(
             "\tSuccessfully completed {} {}".format(self.__class__.__name__, inspect.stack()[0][3])

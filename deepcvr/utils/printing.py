@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, March 4th 2022, 3:27:37 pm                                                    #
-# Modified : Friday, March 4th 2022, 3:27:39 pm                                                    #
+# Modified : Thursday, March 17th 2022, 4:46:27 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -143,12 +143,7 @@ class Printer:
             self._print_line(anchor, k, v)
 
     def print_dataframe(
-        self,
-        content,
-        title=None,
-        precision: int = 2,
-        thousands: str = ",",
-        index: bool = False,
+        self, content, title=None, precision: int = 2, thousands: str = ",", index: bool = False,
     ):
         """Prints a pandas DataFrame
 
@@ -159,3 +154,22 @@ class Printer:
         if title:
             self.print_title(title)
         print(content)
+
+    def print_header(self, header) -> None:
+        header = header.replace("_", " ")
+        header = header.title()
+        available = self._line_length - 4
+        print("# ", available * "=", " #")
+        spaces = available - len(header)
+        if spaces % 2 == 0:
+            left = int(spaces / 2) - 1
+            right = int(spaces / 2) - 1
+        else:
+            left = int(spaces / 2) - 1
+            right = int(spaces / 2)
+        print("# ", left * " ", header, right * " ", " #")
+        print("# ", available * "=", " #")
+
+    def print_footer(self) -> None:
+        available = self._line_length - 4
+        print("# ", available * "=", " #")
