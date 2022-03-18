@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, March 12th 2022, 5:34:59 am                                                 #
-# Modified : Thursday, March 17th 2022, 2:34:53 am                                                 #
+# Modified : Thursday, March 17th 2022, 10:50:51 pm                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -23,7 +23,7 @@ from pymysql import connect
 from pymysql.cursors import DictCursor
 from typing import Any
 
-from deepcvr.data.core import Task
+from deepcvr.data.base import Task
 from deepcvr.utils.io import CsvIO
 from deepcvr.utils.decorators import task_event
 

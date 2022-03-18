@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 4:08:17 pm                                                #
-# Modified : Thursday, March 17th 2022, 2:26:36 am                                                 #
+# Modified : Friday, March 18th 2022, 6:56:04 am                                                   #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -23,8 +23,7 @@ import pytest
 import logging
 import inspect
 
-# from deepcvr.data.database import Database
-from deepcvr.data.core import DagBuilder
+from deepcvr.data.base import DagBuilder
 from deepcvr.utils.config import config_dag
 
 

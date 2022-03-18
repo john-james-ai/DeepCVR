@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 6:41:17 pm                                              #
-# Modified : Wednesday, March 9th 2022, 12:44:02 pm                                                #
+# Modified : Thursday, March 17th 2022, 8:21:48 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -50,10 +50,43 @@ class CsvIO(IO):
         header: list = "infer",
         names: list = None,
         usecols: list = None,
-        index_col=False,
-        n_chunks=20,
+        index_col: bool = False,
+        n_chunks: int = 20,
+        progress_bar: bool = True,
     ) -> pd.DataFrame:
         """Reads a CSV file into pandas DataFrame with progress monitor."""
+
+        if progress_bar:
+            return self._load_progress_bar(
+                filepath=filepath,
+                sep=sep,
+                header=header,
+                names=names,
+                usecols=usecols,
+                index_col=index_col,
+                n_chunks=n_chunks,
+            )
+        else:
+            return self._load_no_progress_bar(
+                filepath=filepath,
+                sep=sep,
+                header=header,
+                names=names,
+                usecols=usecols,
+                index_col=index_col,
+                n_chunks=n_chunks,
+            )
+
+    def _load_progress_bar(
+        self,
+        filepath: str,
+        sep: str = ",",
+        header: list = "infer",
+        names: list = None,
+        usecols: list = None,
+        index_col: bool = False,
+        n_chunks: int = 20,
+    ) -> pd.DataFrame:
 
         rows = sum(1 for _ in open(filepath, "r"))
 
@@ -61,7 +94,7 @@ class CsvIO(IO):
 
         chunks = []
 
-        with tqdm(total=rows, desc="Rows read: ") as bar:
+        with tqdm(total=rows, desc="\tRows read: ") as bar:
             for chunk in pd.read_csv(
                 filepath,
                 sep=sep,
@@ -79,6 +112,39 @@ class CsvIO(IO):
 
         return df
 
+    def _load_no_progress_bar(
+        self,
+        filepath: str,
+        sep: str = ",",
+        header: list = "infer",
+        names: list = None,
+        usecols: list = None,
+        index_col: bool = False,
+        n_chunks: int = 20,
+    ) -> pd.DataFrame:
+
+        rows = sum(1 for _ in open(filepath, "r"))
+
+        chunksize = int(rows / n_chunks)
+
+        chunks = []
+
+        for chunk in pd.read_csv(
+            filepath,
+            sep=sep,
+            header=header,
+            names=names,
+            usecols=usecols,
+            index_col=index_col,
+            low_memory=False,
+            chunksize=chunksize,
+        ):
+            chunks.append(chunk)
+
+        df = pd.concat((f for f in chunks), axis=0)
+
+        return df
+
     def save(
         self,
         data: pd.DataFrame,
@@ -87,7 +153,7 @@ class CsvIO(IO):
         sep: str = ",",
         header: bool = True,
         index: bool = False,
-        n_chunks=20,
+        n_chunks: int = 20,
     ) -> None:
         """Writes a large DataFrame to CSV file with progress monitor."""
 

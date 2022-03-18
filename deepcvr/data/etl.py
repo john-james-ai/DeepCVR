@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Thursday, March 17th 2022, 2:35:47 am                                                 #
-# Modified : Thursday, March 17th 2022, 4:52:02 am                                                 #
+# Modified : Thursday, March 17th 2022, 10:50:51 pm                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -20,11 +20,11 @@
 """Extract, Transform Load of Source Data into Database"""
 import os
 from datetime import datetime
-from collections import OrderedDict
-from deepcvr.data.core import DagBuilder
-from deepcvr.data.core import Task
+from deepcvr.data.base import DagBuilder
+from deepcvr.data.base import Task
 from deepcvr.utils.config import config_dag
 from deepcvr.utils.printing import Printer
+from deepcvr.utils.format import titlelize
 
 # ------------------------------------------------------------------------------------------------ #
 
@@ -43,7 +43,7 @@ class ETL(Task):
 
     __config_filepath = {"development": "tests/test_config", "production": "config"}
 
-    def __init__(self, task_id: int, task_name: str, params: list) -> None:
+    def __init__(self, task_id: int, task_name: str, params: dict) -> None:
         super(ETL, self).__init__(task_id=task_id, task_name=task_name, params=params)
         self._mode = params["mode"]
         self._dataset = params["dataset"]
@@ -63,6 +63,8 @@ class ETL(Task):
         self._goodbye()
 
     def _extract(self) -> None:
+        header = "EXTRACT"
+        self._printer.print_header(header, top=True, bottom=True, dash="-")
         config_filepath = os.path.join(self._config_filepath, "extract.yaml")
         config = config_dag(config_filepath)
 
@@ -70,6 +72,8 @@ class ETL(Task):
         dag.run()
 
     def _transform(self) -> None:
+        header = "TRANSFORM"
+        self._printer.print_header(header, top=True, bottom=True, dash="-")
         config_filepath = os.path.join(self._config_filepath, "transform.yaml")
         config = config_dag(config_filepath)[self._dataset]
 
@@ -77,6 +81,8 @@ class ETL(Task):
         dag.run()
 
     def _load(self) -> None:
+        header = "LOAD"
+        self._printer.print_header(header, top=True, bottom=True, dash="-")
         config_filepath = os.path.join(self._config_filepath, "load.yaml")
         config = config_dag(config_filepath)[self._dataset]
 
@@ -93,13 +99,12 @@ class ETL(Task):
     def _goodbye(self) -> None:
         self._end = datetime.now()
         duration = self._end - self._start
-        d = OrderedDict()
-        d["Task Id"] = self._task_id
-        d["Task Name"] = self._task_name
-        d["Start"] = self._start
-        d["End"] = self._end
-        d["Duration"] = duration
-        d["Status"] = "ok"
-        self._printer.print_dictionary(d)
+        duration = round(duration.total_seconds(), 2)
+        task_id = self._task_id
+        task_name = titlelize(self._task_name)
+        self._printer.print_footer("-")
+        msg = "\nTask {}:\t{} complete.\tDuration: {} seconds.".format(
+            str(task_id), task_name, str(duration)
+        )
+        print(msg)
         self._printer.print_footer()
-

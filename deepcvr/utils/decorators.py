@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, March 14th 2022, 7:53:27 pm                                                   #
-# Modified : Thursday, March 17th 2022, 4:11:00 am                                                 #
+# Modified : Thursday, March 17th 2022, 7:27:03 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -84,13 +84,11 @@ def task_event(func):
 
 
 def print_result(self, start, end):
-    d = {}
-    d["task_id"] = self.__dict__["task_id"]
-    d["task_name"] = self.__dict__["task_name"]
-    d["start"] = start
-    d["end"] = end
+    task_id = self.__dict__["_task_id"]
+    task_name = self.__dict__["_task_name"].replace("_", " ")
     duration = end - start
-    d["duration (sec)"] = duration.total_seconds()
-    d["state"] = "ok"
-    df = pd.DataFrame(d, index=[0])
-    print(df)
+    duration = duration.total_seconds()
+    msg = "\tTask {}:\t{} complete.\tDuration: {} seconds.".format(
+        str(task_id), task_name, str(round(duration, 2))
+    )
+    print(msg)

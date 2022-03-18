@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, March 4th 2022, 3:27:37 pm                                                    #
-# Modified : Thursday, March 17th 2022, 4:46:27 am                                                 #
+# Modified : Thursday, March 17th 2022, 7:46:32 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -155,11 +155,13 @@ class Printer:
             self.print_title(title)
         print(content)
 
-    def print_header(self, header) -> None:
+    def print_header(self, header, top: bool = True, bottom: bool = True, dash: str = "=") -> None:
         header = header.replace("_", " ")
         header = header.title()
         available = self._line_length - 4
-        print("# ", available * "=", " #")
+        print("\n")
+        if top:
+            print("# ", available * dash, " #")
         spaces = available - len(header)
         if spaces % 2 == 0:
             left = int(spaces / 2) - 1
@@ -167,9 +169,10 @@ class Printer:
         else:
             left = int(spaces / 2) - 1
             right = int(spaces / 2)
-        print("# ", left * " ", header, right * " ", " #")
-        print("# ", available * "=", " #")
+        print("  ", left * " ", header, right * " ", "  ")
+        if bottom:
+            print("# ", available * dash, " #")
 
-    def print_footer(self) -> None:
+    def print_footer(self, dash: str = "=") -> None:
         available = self._line_length - 4
-        print("# ", available * "=", " #")
+        print("# ", available * dash, " #")

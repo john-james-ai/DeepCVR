@@ -41,5 +41,6 @@ sudo dpkg -i setup/MySQL/mysql-apt-config_0.8.22-1_all.deb
 sudo apt-get update
 sudo apt-get install mysql-server
 
-# Login
+# Start and login
+sudo service mysql start
 mysql -u john -p

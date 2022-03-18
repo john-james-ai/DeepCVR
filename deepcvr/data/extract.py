@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, February 14th 2022, 12:32:13 pm                                               #
-# Modified : Wednesday, March 16th 2022, 7:10:39 pm                                                #
+# Modified : Thursday, March 17th 2022, 10:50:52 pm                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -26,10 +26,10 @@ from botocore.exceptions import NoCredentialsError
 from typing import Any
 from dotenv import load_dotenv
 
-from deepcvr.data.core import Task
+from deepcvr.data.base import Task
 from deepcvr.utils.io import CsvIO
 from deepcvr.data import COLS_CORE_DATASET, COLS_COMMON_FEATURES_DATASET
-from deepcvr.utils.decorators import event
+from deepcvr.utils.decorators import task_event
 
 # ------------------------------------------------------------------------------------------------ #
 # Uncomment for debugging
@@ -64,7 +64,7 @@ class S3Downloader(Task):
 
         self._progressbar = None
 
-    @event
+    @task_event
     def execute(self, context: Any = None) -> Any:
 
         load_dotenv()
@@ -139,7 +139,7 @@ class Decompress(Task):
         self._destination = params["destination"]
         self._force = params["force"]
 
-    @event
+    @task_event
     def execute(self, context: Any = None) -> Any:
         """Extracts and stores the data, then pushes filepaths to xCom."""
 
@@ -189,7 +189,7 @@ class Stage(Task):
         self._n_partitions = params["n_partitions"]
         self._force = params["force"]
 
-    @event
+    @task_event
     def execute(self, context: Any = None) -> Any:
 
         io = CsvIO()

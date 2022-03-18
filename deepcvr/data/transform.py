@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Sunday, February 27th 2022, 10:11:02 am                                               #
-# Modified : Wednesday, March 16th 2022, 7:12:01 pm                                                #
+# Modified : Thursday, March 17th 2022, 10:50:52 pm                                                #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -25,7 +25,7 @@ from pyspark.sql.types import LongType, StringType, DoubleType, StructField, Str
 import pandas as pd
 from typing import Union, Any
 
-from deepcvr.data.core import Task
+from deepcvr.data.base import Task
 from deepcvr.utils.io import CsvIO
 from deepcvr.utils.decorators import task_event
 
@@ -51,13 +51,15 @@ class TransformImpressionsTask(Task):
         """
 
         io = CsvIO()
-        data = io.load(self._params["input_filepath"])
+        data = io.load(self._params["input_filepath"], progress_bar=False)
 
         spark = (
-            SparkSession.builder.master("local[24]")
+            SparkSession.builder.master("local[20]")
             .appName("DeepCVR Core Features ETL")
             .getOrCreate()
         )
+
+        spark.sparkContext.setLogLevel("ERROR")
 
         sdf = spark.createDataFrame(data)
 
@@ -122,13 +124,15 @@ class TransformCommonFeatureGroupsTask(Task):
         """
 
         io = CsvIO()
-        data = io.load(self._params["input_filepath"])
+        data = io.load(self._params["input_filepath"], progress_bar=False)
 
         spark = (
-            SparkSession.builder.master("local[24]")
+            SparkSession.builder.master("local[20]")
             .appName("DeepCVR Core Features ETL")
             .getOrCreate()
         )
+
+        spark.sparkContext.setLogLevel("ERROR")
 
         sdf = spark.createDataFrame(data)
 
@@ -178,13 +182,14 @@ class TransformFeaturesTask(Task):
         """
 
         io = CsvIO()
-        data = io.load(self._params["input_filepath"])
+        data = io.load(self._params["input_filepath"], progress_bar=False)
 
         spark = (
-            SparkSession.builder.master("local[24]")
+            SparkSession.builder.master("local[20]")
             .appName("DeepCVR Core Features ETL")
             .getOrCreate()
         )
+        spark.sparkContext.setLogLevel("ERROR")
 
         sdf = spark.createDataFrame(data)
 
@@ -245,13 +250,15 @@ class TransformCommonFeaturesTask(Task):
         """Transforms common feature list into 3rd normal form"""
 
         io = CsvIO()
-        data = io.load(self._params["input_filepath"])
+        data = io.load(self._params["input_filepath"], progress_bar=False)
 
         spark = (
-            SparkSession.builder.master("local[24]")
+            SparkSession.builder.master("local[20]")
             .appName("DeepCVR Common Features ETL")
             .getOrCreate()
         )
+
+        spark.sparkContext.setLogLevel("ERROR")
 
         sdf = spark.createDataFrame(data)
 
