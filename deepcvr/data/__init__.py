@@ -11,13 +11,16 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Tuesday, February 22nd 2022, 5:37:23 am                                               #
-# Modified : Friday, March 11th 2022, 10:45:55 pm                                                  #
+# Modified : Friday, March 18th 2022, 10:42:17 am                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
 # Copyright: (c) 2022 Bryant St. Labs                                                              #
 # ================================================================================================ #
 """Contants related to the data representation."""
+import sqlalchemy
+
+# ------------------------------------------------------------------------------------------------ #
 # Database table columns
 COLS_IMPRESSIONS_TBL = [
     "sample_id",
@@ -43,3 +46,51 @@ COLS_COMMON_FEATURES_DATASET = [
     "num_features",
     "features_list",
 ]
+# ------------------------------------------------------------------------------------------------ #
+#                                         DATA TYPES                                               #
+# ------------------------------------------------------------------------------------------------ #
+# Sqlalchemy Data Types
+DTYPES_SA = {
+    "impressions": {
+        "sample_id": sqlalchemy.types.BigInteger(),
+        "click_label": sqlalchemy.types.BigInteger(),
+        "conversion_label": sqlalchemy.types.BigInteger(),
+        "common_features_index": sqlalchemy.types.VARCHAR(32),
+        "num_features": sqlalchemy.types.BigInteger(),
+    },
+    "features": {
+        "id": sqlalchemy.types.BigInteger(),
+        "sample_id": sqlalchemy.types.BigInteger(),
+        "feature_name": sqlalchemy.types.VARCHAR(64),
+        "feature_id": sqlalchemy.types.BigInteger(),
+        "feature_value": sqlalchemy.types.Float(precision=2, asdecimal=True),
+    },
+    "common_feature_groups": {
+        "common_features_index": sqlalchemy.types.VARCHAR(32),
+        "num_features": sqlalchemy.types.BigInteger(),
+    },
+    "common_features": {
+        "id": sqlalchemy.types.BigInteger(),
+        "common_features_index": sqlalchemy.types.VARCHAR(32),
+        "feature_name": sqlalchemy.types.VARCHAR(64),
+        "feature_id": sqlalchemy.types.BigInteger(),
+        "feature_value": sqlalchemy.types.Float(precision=2, asdecimal=True),
+    },
+}
+
+# Pandas Data Types
+DTYPES_PD = {
+    "core": {
+        "sample_id": "Int64",
+        "click_label": "Int64",
+        "conversion_label": "Int64",
+        "common_features_index": "object",
+        "num_features": "Int64",
+        "features_list": "object",
+    },
+    "common_features": {
+        "common_features_index": "object",
+        "num_features": "Int64",
+        "features_list": "object",
+    },
+}

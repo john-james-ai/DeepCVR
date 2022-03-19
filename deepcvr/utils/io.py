@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 6:41:17 pm                                              #
-# Modified : Thursday, March 17th 2022, 8:21:48 am                                                 #
+# Modified : Saturday, March 19th 2022, 5:06:13 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -20,6 +20,7 @@
 """Reading and writing dataframes with progress bars"""
 from abc import ABC, abstractmethod
 import os
+from dask.diagnostics import ProgressBar
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
@@ -40,6 +41,38 @@ class IO(ABC):
 
 
 # ------------------------------------------------------------------------------------------------ #
+class ParquetIO(IO):
+    """Processes IO to and from Parquet files"""
+
+    def load(
+        self,
+        filepath: str,
+        columns: list = None,
+        engine: str = "auto",
+        index: bool = False,
+        partition_cols: list = None,
+        **kwargs
+    ) -> pd.DataFrame:
+
+        with ProgressBar():
+            df = pd.read_parquet(filepath, engine=engine, index=index, columns=columns)
+        return df
+
+    def save(
+        self,
+        data: pd.DataFrame,
+        filepath: str,
+        engine: str = "auto",
+        index: bool = False,
+        partition_cols: list = None,
+        **kwargs
+    ) -> None:
+
+        with ProgressBar():
+            data.to_parquet(filepath, engine=engine, index=index, partition_cols=partition_cols)
+
+
+# ------------------------------------------------------------------------------------------------ #
 class CsvIO(IO):
     """Handles IO of pandas DataFrames to /from CSV Files """
 
@@ -51,6 +84,7 @@ class CsvIO(IO):
         names: list = None,
         usecols: list = None,
         index_col: bool = False,
+        dtype: dict = None,
         n_chunks: int = 20,
         progress_bar: bool = True,
     ) -> pd.DataFrame:
@@ -64,6 +98,7 @@ class CsvIO(IO):
                 names=names,
                 usecols=usecols,
                 index_col=index_col,
+                dtype=dtype,
                 n_chunks=n_chunks,
             )
         else:
@@ -74,6 +109,7 @@ class CsvIO(IO):
                 names=names,
                 usecols=usecols,
                 index_col=index_col,
+                dtype=dtype,
                 n_chunks=n_chunks,
             )
 
@@ -85,6 +121,7 @@ class CsvIO(IO):
         names: list = None,
         usecols: list = None,
         index_col: bool = False,
+        dtype: dict = None,
         n_chunks: int = 20,
     ) -> pd.DataFrame:
 
@@ -102,6 +139,7 @@ class CsvIO(IO):
                 names=names,
                 usecols=usecols,
                 index_col=index_col,
+                dtype=dtype,
                 low_memory=False,
                 chunksize=chunksize,
             ):
@@ -120,6 +158,7 @@ class CsvIO(IO):
         names: list = None,
         usecols: list = None,
         index_col: bool = False,
+        dtype: dict = None,
         n_chunks: int = 20,
     ) -> pd.DataFrame:
 
@@ -136,6 +175,7 @@ class CsvIO(IO):
             names=names,
             usecols=usecols,
             index_col=index_col,
+            dtype=dtype,
             low_memory=False,
             chunksize=chunksize,
         ):

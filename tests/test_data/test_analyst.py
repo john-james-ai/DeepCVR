@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 4:08:17 pm                                                #
-# Modified : Friday, March 18th 2022, 5:56:50 am                                                   #
+# Modified : Friday, March 18th 2022, 8:36:52 am                                                   #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -20,7 +20,9 @@
 
 #%%
 import logging
+import numpy as np
 import inspect
+import pytest
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -34,8 +36,10 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------- #
 
 
+@pytest.mark.analyst
 class TestAnalyst:
-    def test_categorical_analyst(self) -> None:
+    def test_categorical_analyst(self, caplog) -> None:
+        caplog.set_level(logging.INFO)
 
         logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
@@ -53,7 +57,7 @@ class TestAnalyst:
         )
 
         # Get Data
-        df = analyst.get_data()
+        df = analyst.get_features()
         assert df.shape[0] > 0, logger.error("DataFrame has no data")
 
         # Get sample
@@ -61,11 +65,11 @@ class TestAnalyst:
         assert df.shape[0] == 5, logger.error("DataFrame doesn't have expected number of samples")
 
         # Properties
-        assert analyst.feature_name == "101", logger.error("Invalid feature name in property")
+        assert analyst.feature_name == "121", logger.error("Invalid feature name in property")
         assert analyst.tablename == "features", logger.error("Invalid table name")
         assert isinstance(analyst.fig, plt.Figure), logger.error("Figure property error")
-        assert isinstance(analyst.figsize, tuple), logger.error("Figsize error. Not a tuple")
-        assert isinstance(analyst.get_unique(), list), logger.error(
+        assert isinstance(analyst.figsize, list), logger.error("Figsize error. Not a tuple")
+        assert isinstance(analyst.get_unique(), np.ndarray), logger.error(
             "Get unique didn't return a list"
         )
         assert isinstance(analyst.get_uniqueness(), float), logger.error(
@@ -102,7 +106,8 @@ class TestAnalyst:
             "\tSuccessfully completed {} {}".format(self.__class__.__name__, inspect.stack()[0][3])
         )
 
-    def test_numeric_analyst(self) -> None:
+    def test_numeric_analyst(self, caplog) -> None:
+        caplog.set_level(logging.INFO)
 
         logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
@@ -119,7 +124,7 @@ class TestAnalyst:
         )
 
         # Get Data
-        df = analyst.get_data()
+        df = analyst.get_features()
         assert df.shape[0] > 0, logger.error("DataFrame has no data")
 
         # Get sample
@@ -127,11 +132,11 @@ class TestAnalyst:
         assert df.shape[0] == 5, logger.error("DataFrame doesn't have expected number of samples")
 
         # Properties
-        assert analyst.feature_name == "101", logger.error("Invalid feature name in property")
+        assert analyst.feature_name == "150_14", logger.error("Invalid feature name in property")
         assert analyst.tablename == "features", logger.error("Invalid table name")
         assert isinstance(analyst.fig, plt.Figure), logger.error("Figure property error")
-        assert isinstance(analyst.figsize, tuple), logger.error("Figsize error. Not a tuple")
-        assert isinstance(analyst.get_unique(), list), logger.error(
+        assert isinstance(analyst.figsize, list), logger.error("Figsize error. Not a tuple")
+        assert isinstance(analyst.get_unique(), np.ndarray), logger.error(
             "Get unique didn't return a list"
         )
         assert isinstance(analyst.get_uniqueness(), float), logger.error(

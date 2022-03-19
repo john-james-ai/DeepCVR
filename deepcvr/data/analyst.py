@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, March 18th 2022, 1:09:47 am                                                   #
-# Modified : Friday, March 18th 2022, 7:40:13 am                                                   #
+# Modified : Friday, March 18th 2022, 6:01:51 pm                                                   #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -23,7 +23,9 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 
-plt.style.use(["denim"])
+from deepcvr.data.database import DAO
+
+plt.style.use(["ggplot"])
 # ------------------------------------------------------------------------------------------------ #
 
 
@@ -34,10 +36,6 @@ class FeatureAnalyst(ABC):
     a graphics component.
 
     Args:
-        feature_name (str): The name for the feature to be analyzed.
-
-        tablename (str): The table in which the feature exists. Valid values include
-            the 'features' table or the 'common_features' table.
 
         connection_string (str): Connection string to the database.
 
@@ -57,24 +55,14 @@ class FeatureAnalyst(ABC):
             linewidth (float)       The linewidth of the frame
             tight_layout (bool)     Indicates whether to use the tight layout mechanism
             alpha (float)           Scalar in [0-1] range to specify transparency.
+            palette                 Seaborn or matplotlib palette
 
 
     """
 
     def __init__(
-        self,
-        feature_name: str,
-        tablename: str,
-        connection_string: str,
-        fig: plt.Figure,
-        ax: plt.Axes,
-        **kwargs: dict
+        self, connection_string: str, fig: plt.Figure, ax: plt.Axes, **kwargs: dict
     ) -> None:
-
-        self._feature_name = feature_name
-        self._tablename = tablename
-
-        from deepcvr.data.database import DAO
 
         self._dao = DAO(connection_string)
         self._fig = fig
@@ -84,6 +72,7 @@ class FeatureAnalyst(ABC):
         self._edgecolor = kwargs.pop("edgecolor", "152A38")
         self._linewidth = kwargs.pop("linewidth", 1.5)
         self._tight_layout = kwargs.pop("tight_layout", True)
+        self._palette = kwargs.pop("palette", "light:b")
 
         self._data = None
         self._value_counts = None
@@ -91,29 +80,6 @@ class FeatureAnalyst(ABC):
     # -------------------------------------------------------------------------------------------- #
     #                                        PROPERTIES                                            #
     # -------------------------------------------------------------------------------------------- #
-
-    @property
-    def feature_name(self) -> str:
-        """Returns the name of the feature being analyzed"""
-        return self._feature_name
-
-    @feature_name.setter
-    def feature_name(self, feature_name: str) -> None:
-        """Sets the feature to be analyzed"""
-        self._feature_name = feature_name
-        self._reset_data()
-
-    # -------------------------------------------------------------------------------------------- #
-    @property
-    def tablename(self) -> str:
-        """Returns the name of the feature being analyzed"""
-        return self._tablename
-
-    @tablename.setter
-    def tablename(self, tablename: str) -> None:
-        """Sets the table for the feature being analyzed."""
-        self._tablename = tablename
-        self._reset_data()
 
     # -------------------------------------------------------------------------------------------- #
     @property
@@ -142,23 +108,56 @@ class FeatureAnalyst(ABC):
         self._figsize = figsize
 
     # -------------------------------------------------------------------------------------------- #
-    #                                        DATA ACCESS                                           #
-    # -------------------------------------------------------------------------------------------- #
-    def get_data(self) -> pd.DataFrame:
-        """Returns the feature name, id, and value, from the dataset."""
-        if self._data is not None:
-            return self._data
-        else:
-            if "common" in self._tablename:
-                statement = "SELECT * FROM common_features WHERE feature_name=%s;"
-            else:
-                statement = "SELECT * FROM features WHERE feature_name=%s;"
-            self._data = self._dao.select(statement=statement, params=(self._feature_name))
-        return self._data
+    @property
+    def feature_names(self) -> list:
+        """Returns a list of all unique feature names"""
+
+        statement = "SELECT DISTINCT feature_name FROM features;"
+        return self._dao.select(statement=statement)
 
     # -------------------------------------------------------------------------------------------- #
-    def sample_data(self, n: int = 5, random_state: int = None) -> pd.DataFrame:
-        """Returns a random sampling of n rows containing the feature being analyzed.
+    @property
+    def n_features(self) -> int:
+        """Returns the number of unique features"""
+        return len(self.features)
+
+    # -------------------------------------------------------------------------------------------- #
+    @property
+    def common_features(self) -> list:
+        """Returns a list of all unique feature names"""
+
+        statement = "SELECT DISTINCT feature_name FROM common_features;"
+        return self._dao.select(statement=statement)
+
+    # -------------------------------------------------------------------------------------------- #
+    @property
+    def n_common_features(self) -> int:
+        """Returns the number of unique features"""
+        return len(self.common_features)
+
+    # -------------------------------------------------------------------------------------------- #
+    #                                        DATA ACCESS                                           #
+    # -------------------------------------------------------------------------------------------- #
+    def get_data(self, feature_name: str = None) -> pd.DataFrame:
+        """Returns feature value for the provided feature_name. If feature_name is None,
+        all feature data are returned.
+        """
+
+        if feature_name:
+            statement = "SELECT * FROM features WHERE feature_name=%s;"
+            data = self._dao.select(statement=statement, params=((self._feature_name,)))
+        else:
+            statement = "SELECT * FROM features;"
+            data = self._dao.select(statement=statement)
+
+        return data
+
+    # -------------------------------------------------------------------------------------------- #
+    def sample_data(
+        self, feature_name: str = None, n: int = 5, random_state: int = None
+    ) -> pd.DataFrame:
+        """Returns a random sampling of n rows containing the feature being analyzed. If
+        feature_name is None, a random sample from the dataset is returned.
 
         Args:
             n (int): The number of random samples to return
@@ -166,20 +165,15 @@ class FeatureAnalyst(ABC):
             random_state (int): Seed for pseudo random number generation
         """
 
-        df = self.get_data()
+        df = self.get_features()
         return df.sample(n=n, replace=False, axis=0, ignore_index=False, random_state=random_state)
-
-    # -------------------------------------------------------------------------------------------- #
-    def reset_data(self) -> None:
-        self._data = None
-        self._value_counts = None
 
     # -------------------------------------------------------------------------------------------- #
     #                                      STATISTICS                                              #
     # -------------------------------------------------------------------------------------------- #
-    def get_unique(self) -> list:
+    def get_unique(self, feature_name: str = None) -> list:
         """Returns a list of unique values for a feature"""
-        df = self.get_data()
+        df = self.get_features()
         return df["feature_value"].unique()
 
     # -------------------------------------------------------------------------------------------- #
@@ -189,51 +183,47 @@ class FeatureAnalyst(ABC):
 
     # -------------------------------------------------------------------------------------------- #
     def get_uniqueness(self) -> float:
-        """Returns number of unique values versus total observations as a percentage"""
-        df = self.get_data()
+        """Returns degree of uniqueness as a percentage of observations"""
+        df = self.get_features()
         return self.get_nunique() / df.shape[0] * 100
 
     # -------------------------------------------------------------------------------------------- #
     def get_value_counts(self) -> pd.DataFrame:
-        if self._value_counts is not None:
-            return self._value_counts
-        else:
-            return self._compute_value_counts()
+        if self._value_counts is None:
+            df = self.get_features()
+            vc = (
+                df["feature_value"]
+                .value_counts(sort=True, ascending=False, dropna=True)
+                .to_frame()
+                .reset_index()
+            )
+            vc.columns = ["Value", "Count"]
+            vc["Cumulative"] = vc["Count"].cumsum()
+            vc["Percent of Data"] = vc["Cumulative"] / len(vc) * 100
+            vc["Rank"] = np.arange(1, len(vc) + 1)
+            vc["Value Rank"] = vc["Rank"].astype("category")
 
-    # -------------------------------------------------------------------------------------------- #
-    def _compute_value_counts(self) -> pd.DataFrame:
-        df = self.get_data()
-        vc = (
-            df["feature_value"]
-            .value_counts(sort=True, ascending=False, dropna=True)
-            .to_frame()
-            .reset_index()
-        )
-        vc.columns = ["Value", "Count"]
-        vc["Cumulative"] = vc["Count"].cumsum()
-        vc["Percent of Data"] = vc["Cumulative"] / len(vc.dropna()) * 100
-        vc["Rank"] = np.arange(1, len(vc) + 1)
-        vc["Value Rank"] = vc["Rank"].astype("category")
-        self._value_counts = vc
+            self._value_counts = vc
         return self._value_counts
 
     # -------------------------------------------------------------------------------------------- #
-    def get_missing_count(self) -> int:
-        """Returns the number of observations with missing feature values"""
-        df = self.get_data()
-        return len(df.loc[df["feature_value"].isna()])
+    def get_missing_count(self, feature_name: str = None) -> int:
+        """Returns the number of missing observations for the feature_name or the feature
+        dataset if no feature_name is provided."""
+        df = self.get_features()
+        return sum(df.loc[df["feature_value"].isna()])
 
     # -------------------------------------------------------------------------------------------- #
     def get_missingness(self) -> float:
         """Returns the percentage of the feature values that are missing """
-        df = self.get_data()
+        df = self.get_features()
         return self.get_missing_count() / df.shape[0] * 100
 
     # -------------------------------------------------------------------------------------------- #
     def describe(self) -> pd.DataFrame:
         """Return descriptive statistics for the feature"""
-        df = self.get_data()
-        return df.describe()
+        df = self.get_features()
+        return df["feature_value"].describe()
 
     # -------------------------------------------------------------------------------------------- #
     def _finalize(
@@ -282,12 +272,12 @@ class CategoricalFeatureAnalyst(FeatureAnalyst):
         )
 
     # -------------------------------------------------------------------------------------------- #
-    def barchart(
+    def barplot(
         self, title: str = None, filepath: str = None, show: bool = True, **kwargs
     ) -> plt.Axes:
         """Bar chart showing values on x axis and counts on the y axis."""
         vc = self.get_value_counts()
-        self._ax = sns.barplot(x="value", y="count", data=vc, palette="Blues_d")
+        self._ax = sns.barplot(x="Value", y="Count", data=vc, palette="Blues_d")
 
         return self._finalize(title=title, filepath=filepath, show=show, **kwargs)
 
@@ -359,10 +349,8 @@ class NumericFeatureAnalyst(FeatureAnalyst):
     ) -> plt.Axes:
         """Represents distribution of data of continuous variables"""
 
-        df = self.get_data()
-        sns.histplot(
-            data=df["feature_value"], x="feature_value", palette=self._palette, ax=self._ax
-        )
+        df = self.get_features()
+        sns.histplot(data=df, x="feature_value", palette=self._palette, ax=self._ax)
 
         return self._finalize(title=title, filepath=filepath, show=show, **kwargs)
 
@@ -371,7 +359,7 @@ class NumericFeatureAnalyst(FeatureAnalyst):
         self, title: str = None, filepath: str = None, show: bool = True, **kwargs
     ) -> plt.Axes:
 
-        df = self.get_data()
-        sns.boxplot(x="feature_value", data=df["feature_value"], palette=self._palette, ax=self._ax)
+        df = self.get_features()
+        sns.boxplot(x="feature_value", data=df, palette=self._palette, ax=self._ax)
 
         return self._finalize(title=title, filepath=filepath, show=show, **kwargs)

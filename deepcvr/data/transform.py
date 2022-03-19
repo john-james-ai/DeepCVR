@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Sunday, February 27th 2022, 10:11:02 am                                               #
-# Modified : Thursday, March 17th 2022, 10:50:52 pm                                                #
+# Modified : Saturday, March 19th 2022, 5:15:46 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -19,40 +19,54 @@
 # ================================================================================================ #
 """Transforms ALI-CCP impression and feature data into 3rd Normal Form prior to loading."""
 import re
+import logging
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import pandas_udf, PandasUDFType
-from pyspark.sql.types import LongType, StringType, DoubleType, StructField, StructType
+from pyspark.sql.types import StringType, DoubleType, IntegerType, StructField, StructType
 import pandas as pd
 from typing import Union, Any
 
 from deepcvr.data.base import Task
-from deepcvr.utils.io import CsvIO
+from deepcvr.utils.io import ParquetIO
 from deepcvr.utils.decorators import task_event
 
 # ------------------------------------------------------------------------------------------------ #
-#                                    TRANSFORM CORE                                                #
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+# ------------------------------------------------------------------------------------------------ #
+
+# ------------------------------------------------------------------------------------------------ #
+#                                      SPLIT MERGE                                                 #
 # ------------------------------------------------------------------------------------------------ #
 
 
-class TransformImpressionsTask(Task):
-    """Transforms a core dataset into an core sans the feature list."""
+class CoreFeatureConversion(Task):
+    """Extracts, reformats and stores core features in a format for loading. """
 
     def __init__(self, task_id: int, task_name: str, params: list) -> None:
-        super(TransformImpressionsTask, self).__init__(
+        super(CoreFeatureConversion, self).__init__(
             task_id=task_id, task_name=task_name, params=params
         )
 
     @task_event
     def execute(self, context: Any = None) -> None:
-        """Transforms core dataset removing features and restoring normal form.
+        """Core feature extraction and conversion
 
-        Args
-            data (pd.DataFrame): Input data. Optional
+        Args:
+            context (dict): Context data for the DAG
         """
+        # ---------------------------------------------------------------------------------------- #
+        # Load, partition, and create the core dataset
 
-        io = CsvIO()
-        data = io.load(self._params["input_filepath"], progress_bar=False)
+        logger.debug("Reading core dataset.")
+        io = ParquetIO()
+        data = io.load(self._params["input_filepath"], engine="auto")
 
+        logger.debug("Partitioning core dataset")
+        reindexed = data.reset_index()
+        data["partition"] = reindexed.index % self._params["n_partitions"]
+
+        logger.debug("Create Spark context")
         spark = (
             SparkSession.builder.master("local[20]")
             .appName("DeepCVR Core Features ETL")
@@ -61,166 +75,93 @@ class TransformImpressionsTask(Task):
 
         spark.sparkContext.setLogLevel("ERROR")
 
+        logger.debug("Create Spark dataframe and dispatch the parallelism")
         sdf = spark.createDataFrame(data)
+        result = sdf.groupby("partition").apply(core_features)
 
-        result = sdf.groupby("partition").apply(transform_core)
-
-        pdf = result.toPandas()
-
-        io.save(pdf, self._params["output_filepath"])
+        # Save the core dataset
+        io.save(
+            result,
+            filepath=self._params["output_filepath1"],
+            engine="auto",
+            partition_cols=["sample_id", "common_features_index"],
+        )
+        logger.debug("Collect the result and save the dataframe")
 
 
 # ------------------------------------------------------------------------------------------------ #
-schema_core = StructType(
+class CommonFeatureConversion(Task):
+    """Extracts, reformats and stores common features in a format for loading. """
+
+    def __init__(self, task_id: int, task_name: str, params: list) -> None:
+        super(CoreFeatureConversion, self).__init__(
+            task_id=task_id, task_name=task_name, params=params
+        )
+
+    @task_event
+    def execute(self, context: Any = None) -> None:
+        """Common feature extraction and conversion
+
+        Args:
+            context (dict): Context data for the DAG
+        """
+        # ---------------------------------------------------------------------------------------- #
+        # Load, partition, and create the core dataset
+
+        logger.debug("Reading core dataset.")
+        io = ParquetIO()
+        data = io.load(self._params["input_filepath"], engine="auto")
+
+        logger.debug("Partitioning core dataset")
+        reindexed = data.reset_index()
+        data["partition"] = reindexed.index % self._params["n_partitions"]
+
+        logger.debug("Create Spark context")
+        spark = (
+            SparkSession.builder.master("local[20]")
+            .appName("DeepCVR Core Features ETL")
+            .getOrCreate()
+        )
+
+        spark.sparkContext.setLogLevel("ERROR")
+
+        logger.debug("Create Spark dataframe and dispatch the parallelism")
+        sdf = spark.createDataFrame(data)
+        result = sdf.groupby("partition").apply(common_features)
+
+        # Save the core dataset
+        io.save(
+            result,
+            filepath=self._params["output_filepath1"],
+            engine="auto",
+            partition_cols=["common_features_index"],
+        )
+        logger.debug("Collect the result and save the dataframe")
+
+
+# ------------------------------------------------------------------------------------------------ #
+#                               CORE FEATURE SCHEMA AND UDF                                        #
+# ------------------------------------------------------------------------------------------------ #
+core_schema = StructType(
     [
         StructField("sample_id", DoubleType(), False),
-        StructField("click_label", DoubleType(), False),
-        StructField("conversion_label", DoubleType(), False),
-        StructField("common_features_index", StringType(), False),
         StructField("num_features", DoubleType(), False),
-        StructField("partition", DoubleType(), False),
+        StructField("features_list", StringType(), False),
+        StructField("partition", IntegerType(), False),
     ]
 )
 # ------------------------------------------------------------------------------------------------ #
 
 
-@pandas_udf(schema_core, PandasUDFType.GROUPED_MAP)
-def transform_core(partition):
-
-    output = partition[
-        [
-            "sample_id",
-            "click_label",
-            "conversion_label",
-            "common_features_index",
-            "num_features",
-            "partition",
-        ]
-    ]
-
-    return output
-
-
-# ------------------------------------------------------------------------------------------------ #
-#                          TRANSFORM COMMON FEATURE GROUPS                                         #
-# ------------------------------------------------------------------------------------------------ #
-
-
-class TransformCommonFeatureGroupsTask(Task):
-    """Transforms common features dataset into a common feature group dataset ."""
-
-    def __init__(self, task_id: int, task_name: str, params: list) -> None:
-        super(TransformCommonFeatureGroupsTask, self).__init__(
-            task_id=task_id, task_name=task_name, params=params
-        )
-
-    @task_event
-    def execute(self, context: Any = None) -> None:
-        """Transforms common features dataset to common feature groups by removing features and
-        restoring normal form.
-
-        Args
-            data (pd.DataFrame): Input data. Optional
-        """
-
-        io = CsvIO()
-        data = io.load(self._params["input_filepath"], progress_bar=False)
-
-        spark = (
-            SparkSession.builder.master("local[20]")
-            .appName("DeepCVR Core Features ETL")
-            .getOrCreate()
-        )
-
-        spark.sparkContext.setLogLevel("ERROR")
-
-        sdf = spark.createDataFrame(data)
-
-        result = sdf.groupby("partition").apply(transform_common_feature_groups)
-
-        pdf = result.toPandas()
-
-        io.save(pdf, self._params["output_filepath"])
-
-
-# ------------------------------------------------------------------------------------------------ #
-schema_common_feature_groups = StructType(
-    [
-        StructField("common_features_index", StringType(), False),
-        StructField("num_features", DoubleType(), False),
-        StructField("partition", DoubleType(), False),
-    ]
-)
-# ------------------------------------------------------------------------------------------------ #
-
-
-@pandas_udf(schema_common_feature_groups, PandasUDFType.GROUPED_MAP)
-def transform_common_feature_groups(partition):
-
-    output = partition[["common_features_index", "num_features", "partition"]]
-
-    return output
-
-
-# ------------------------------------------------------------------------------------------------ #
-#                                TRANSFORM CORE FEATURES                                           #
-# ------------------------------------------------------------------------------------------------ #
-class TransformFeaturesTask(Task):
-    """Transforms core feature list into 3rd normal form """
-
-    def __init__(self, task_id: int, task_name: str, params: list) -> None:
-        super(TransformFeaturesTask, self).__init__(
-            task_id=task_id, task_name=task_name, params=params
-        )
-
-    @task_event
-    def execute(self, context: Any = None) -> None:
-        """Transforms core feature list into 3rd normal form
-
-        Args
-            data (pd.DataFrame): Input data. Optional
-        """
-
-        io = CsvIO()
-        data = io.load(self._params["input_filepath"], progress_bar=False)
-
-        spark = (
-            SparkSession.builder.master("local[20]")
-            .appName("DeepCVR Core Features ETL")
-            .getOrCreate()
-        )
-        spark.sparkContext.setLogLevel("ERROR")
-
-        sdf = spark.createDataFrame(data)
-
-        result = sdf.groupby("partition").apply(transform_core_features)
-
-        pdf = result.toPandas()
-
-        io.save(pdf, self._params["output_filepath"])
-
-
-# ------------------------------------------------------------------------------------------------ #
-schema_core_features = StructType(
-    [
-        StructField("sample_id", LongType(), False),
-        StructField("feature_name", StringType(), False),
-        StructField("feature_id", LongType(), False),
-        StructField("feature_value", DoubleType(), False),
-    ]
-)
-# ------------------------------------------------------------------------------------------------ #
-
-
-@pandas_udf(schema_core_features, PandasUDFType.GROUPED_MAP)
-def transform_core_features(partition):
+@pandas_udf(core_schema, PandasUDFType.GROUPED_MAP)
+def core_features(partition):
 
     output = pd.DataFrame()
 
     for _, row in partition.iterrows():
         sample_id = int(row[0])
-        num_features = int(row[4])
-        feature_string = row[5]
+        num_features = int(row[1])
+        feature_string = row[2]
 
         df = parse_feature_string(
             id_name="sample_id",
@@ -235,70 +176,39 @@ def transform_core_features(partition):
 
 
 # ------------------------------------------------------------------------------------------------ #
-#                               TRANSFORM COMMON FEATURES                                          #
+#                              COMMON FEATURE SCHEMA AND UDF                                       #
 # ------------------------------------------------------------------------------------------------ #
-class TransformCommonFeaturesTask(Task):
-    """Transforms core feature list into 3rd normal form """
-
-    def __init__(self, task_id: int, task_name: str, params: list) -> None:
-        super(TransformCommonFeaturesTask, self).__init__(
-            task_id=task_id, task_name=task_name, params=params
-        )
-
-    @task_event
-    def execute(self, context: Any = None) -> None:
-        """Transforms common feature list into 3rd normal form"""
-
-        io = CsvIO()
-        data = io.load(self._params["input_filepath"], progress_bar=False)
-
-        spark = (
-            SparkSession.builder.master("local[20]")
-            .appName("DeepCVR Common Features ETL")
-            .getOrCreate()
-        )
-
-        spark.sparkContext.setLogLevel("ERROR")
-
-        sdf = spark.createDataFrame(data)
-
-        result = sdf.groupby("partition").apply(transform_common_features)
-
-        pdf = result.toPandas()
-
-        io.save(pdf, self._params["output_filepath"])
-
-
-# ------------------------------------------------------------------------------------------------ #
-schema_common_features = StructType(
+common_schema = StructType(
     [
         StructField("common_features_index", StringType(), False),
-        StructField("feature_name", StringType(), False),
-        StructField("feature_id", LongType(), False),
-        StructField("feature_value", DoubleType(), False),
+        StructField("num_features", StringType(), False),
+        StructField("features_list", StringType(), False),
+        StructField("partition", IntegerType(), False),
     ]
 )
+
 # ------------------------------------------------------------------------------------------------ #
 
 
-@pandas_udf(schema_common_features, PandasUDFType.GROUPED_MAP)
-def transform_common_features(partition):
+@pandas_udf(core_schema, PandasUDFType.GROUPED_MAP)
+def common_features(partition):
 
     output = pd.DataFrame()
 
     for _, row in partition.iterrows():
-        common_features_index = row[0]
+        sample_id = int(row[0])
         num_features = int(row[1])
         feature_string = row[2]
 
         df = parse_feature_string(
-            id_name="common_features_index",
-            id_value=common_features_index,
+            id_name="sample_id",
+            id_value=sample_id,
             num_features=num_features,
             feature_string=feature_string,
         )
 
         output = pd.concat([output, df], axis=0)
+
     return output
 
 

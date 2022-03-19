@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, March 12th 2022, 5:34:59 am                                                 #
-# Modified : Thursday, March 17th 2022, 10:50:51 pm                                                #
+# Modified : Saturday, March 19th 2022, 4:56:35 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -24,8 +24,9 @@ from pymysql.cursors import DictCursor
 from typing import Any
 
 from deepcvr.data.base import Task
-from deepcvr.utils.io import CsvIO
+from deepcvr.utils.io import ParquetIO
 from deepcvr.utils.decorators import task_event
+
 
 # ------------------------------------------------------------------------------------------------ #
 #                                DATABASE DEFINITION LANGUAGE                                      #
@@ -126,7 +127,7 @@ class DataLoader(Task):
     @task_event
     def execute(self, context: Any = None) -> None:
 
-        io = CsvIO()
+        io = ParquetIO()
 
         engine = sqlalchemy.create_engine(
             context["database_uri"][self._params["connection_string"]]
@@ -134,10 +135,15 @@ class DataLoader(Task):
 
         data = io.load(filepath=self._params["filepath"])
 
-        # Convert strings to sqlalchemy datatypes
+        # Identify columns and convert strings to sqlalchemy datatypes
+        columns = []
         dtypes = self._params["dtypes"]
-        for column, _ in self._params["dtypes"].items():
-            dtypes[column] = eval(dtypes[column])
+        for column, dtype in self._params["dtypes"].items():
+            dtypes[column] = eval(dtype)
+            columns.append(column)
+
+        # Extract columns of interest
+        data = data[columns]
 
         data.to_sql(
             name=self._params["table"], con=engine, index=False, if_exists="replace", dtype=dtypes,

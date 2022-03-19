@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, February 14th 2022, 12:32:13 pm                                               #
-# Modified : Thursday, March 17th 2022, 10:50:52 pm                                                #
+# Modified : Saturday, March 19th 2022, 5:11:01 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -27,9 +27,8 @@ from typing import Any
 from dotenv import load_dotenv
 
 from deepcvr.data.base import Task
-from deepcvr.utils.io import CsvIO
-from deepcvr.data import COLS_CORE_DATASET, COLS_COMMON_FEATURES_DATASET
 from deepcvr.utils.decorators import task_event
+from deepcvr.utils.io import ParquetIO, CsvIO
 
 # ------------------------------------------------------------------------------------------------ #
 # Uncomment for debugging
@@ -166,55 +165,80 @@ class Decompress(Task):
 
 
 # ------------------------------------------------------------------------------------------------ #
-
-
-class Stage(Task):
-    """Add columns and partition id to the data and stores it in the staged directory
+class Preprocess(Task):
+    """Adds column names and casts the data types
 
     Args:
-        task_id (int): Task sequence in dag.
-        task_name (str): name of task
-        params (dict): Parameters required by the task, including:
-          source (str): The directory containing the input data
-          destination (str): The directory into which the staged data is stored
-          n_partitions (int): The number of partitions to assign
-          force (bool): If True, will execute and overwrite existing data.
+        task_id (int): The task sequence number
+        task_name (str): Brief title for the task
+        params (dict): The dictionary of parameters for the task, including:
+            - columns (list): List of column names for the dataset
+            - dtypes (dict): Dictionary mapping column names to data types
+            - source (str): The filepath for the file to be preprocessed
+            - destination (str): The filepath where the preprocessed file is to be stored
+            - force (bool): If False, don't execute if data already exists at destination.
     """
 
     def __init__(self, task_id: int, task_name: str, params: list) -> None:
-        super(Stage, self).__init__(task_id=task_id, task_name=task_name, params=params)
-
-        self._source = params["source"]
-        self._destination = params["destination"]
-        self._n_partitions = params["n_partitions"]
-        self._force = params["force"]
+        super(Preprocess, self).__init__(task_id=task_id, task_name=task_name, params=params)
 
     @task_event
     def execute(self, context: Any = None) -> Any:
+        """Executes the preprocessing task
 
-        io = CsvIO()
+        Adds column names and casts the data types
 
-        filenames = os.listdir(self._source)
+        Args:
+            context (dict): Parameters passed from the pipeline
+        """
+        source = self._params["source"]
+        destination = self._params["destination"]
+        force = self._params["force"]
+        columns = self._params["columns"]
+        dtypes = self._params["dtypes"]
 
-        for filename in filenames:
-            source = os.path.join(self._source, filename)
-            destination = os.path.join(self._destination, filename)
+        # Add partitioning variables to the file
+        partitioning_cols = []
+        if "sample_id" in columns:
+            partitioning_cols.append("sample_id")
+        if "common_features_index" in columns:
+            partitioning_cols.append("common_features_index")
 
-            if not os.path.exists(destination) or self._force:
-                names = self._get_names(destination)
+        os.makedirs(os.path.dirname(destination), exist_ok=True)
 
-                data = io.load(source, header=None, names=names)
-                reindexed = data.reset_index()
+        if not os.path.exists(destination) or force:
 
-                data["partition"] = reindexed.index % self._n_partitions
+            io = CsvIO()
+            df = io.load(source, header=None, names=columns, index_col=False, dtype=dtypes)
+            io = ParquetIO()
+            io.save(
+                df,
+                filepath=destination,
+                engine="auto",
+                index=False,
+                partition_cols=partitioning_cols,
+            )
 
-                io.save(data, filepath=destination, header=True, index=False)
 
-    def _get_names(self, filename: str) -> list:
-        if "common" in filename:
-            return COLS_COMMON_FEATURES_DATASET
-        else:
-            return COLS_CORE_DATASET
+# ------------------------------------------------------------------------------------------------ #
+class FeatureExtraction(Task):
+    """Extracts core features from dataset in preparation for feature transformation"""
 
+    def __init__(self, task_id: int, task_name: str, params: list) -> None:
+        super(FeatureExtraction, self).__init__(task_id=task_id, task_name=task_name, params=params)
 
-# %%
+    @task_event
+    def execute(self, context: Any = None) -> Any:
+        """Creates the core feature dataset"""
+
+        io = ParquetIO()
+        df = io.load(filepath=self._params["source"], engine="auto", partition_cols=["sample_id"],)
+
+        features = df[["sample_id", "num_features", "features_list"]]
+
+        io.save(
+            features,
+            filepath=self._params["destination"],
+            engine="auto",
+            partition_cols=["sample_id"],
+        )
