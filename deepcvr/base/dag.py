@@ -11,59 +11,15 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Tuesday, March 8th 2022, 8:48:19 pm                                                   #
-# Modified : Thursday, March 17th 2022, 2:41:33 am                                                 #
+# Modified : Monday, March 21st 2022, 12:52:24 am                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
 # Copyright: (c) 2022 Bryant St. Labs                                                              #
 # ================================================================================================ #
-"""Base and abstract class definitions."""
-from abc import ABC, abstractmethod
+"""Defines the interfaces for classes involved in the construction and implementation of DAGS."""
 import importlib
 from typing import Any
-
-# ------------------------------------------------------------------------------------------------ #
-
-
-class Task(ABC):
-    """Abstract class for task classes
-
-    Args:
-        config: Defines the configuration for the task and contains three nexted dictionaries:
-        - header: contains the task_id, task_name
-        - params: list of dictionaries containing parameters for the task
-        - asset: list of assets created by the task
-
-    """
-
-    def __init__(self, task_id: int, task_name: str, params: list) -> None:
-        self._task_id = task_id
-        self._task_name = task_name
-        self._params = params
-
-    def __str__(self) -> str:
-        return str(
-            "Task id: {}\tTask name: {}\tParams: {}".format(
-                self._task_id, self._task_name, self._params
-            )
-        )
-
-    @property
-    def task_id(self) -> int:
-        return self._task_id
-
-    @property
-    def task_name(self) -> str:
-        return self._task_name
-
-    @property
-    def params(self) -> Any:
-        return self._params
-
-    @abstractmethod
-    def execute(self) -> Any:
-        pass
-
 
 # ------------------------------------------------------------------------------------------------ #
 

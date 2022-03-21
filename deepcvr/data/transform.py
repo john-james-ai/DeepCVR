@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Sunday, February 27th 2022, 10:11:02 am                                               #
-# Modified : Saturday, March 19th 2022, 5:15:46 am                                                 #
+# Modified : Monday, March 21st 2022, 12:54:35 am                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -26,8 +26,8 @@ from pyspark.sql.types import StringType, DoubleType, IntegerType, StructField, 
 import pandas as pd
 from typing import Union, Any
 
-from deepcvr.data.base import Task
-from deepcvr.utils.io import ParquetIO
+from deepcvr.base.task import Task
+from deepcvr.utils.io import CsvIO
 from deepcvr.utils.decorators import task_event
 
 # ------------------------------------------------------------------------------------------------ #
@@ -59,8 +59,8 @@ class CoreFeatureConversion(Task):
         # Load, partition, and create the core dataset
 
         logger.debug("Reading core dataset.")
-        io = ParquetIO()
-        data = io.load(self._params["input_filepath"], engine="auto")
+        io = CsvIO()
+        data = io.load(self._params["input_filepath"])
 
         logger.debug("Partitioning core dataset")
         reindexed = data.reset_index()
@@ -78,11 +78,12 @@ class CoreFeatureConversion(Task):
         logger.debug("Create Spark dataframe and dispatch the parallelism")
         sdf = spark.createDataFrame(data)
         result = sdf.groupby("partition").apply(core_features)
+        df = result.toPandas()
 
         # Save the core dataset
         io.save(
-            result,
-            filepath=self._params["output_filepath1"],
+            df,
+            filepath=self._params["output_filepath"],
             engine="auto",
             partition_cols=["sample_id", "common_features_index"],
         )
@@ -94,7 +95,7 @@ class CommonFeatureConversion(Task):
     """Extracts, reformats and stores common features in a format for loading. """
 
     def __init__(self, task_id: int, task_name: str, params: list) -> None:
-        super(CoreFeatureConversion, self).__init__(
+        super(CommonFeatureConversion, self).__init__(
             task_id=task_id, task_name=task_name, params=params
         )
 
@@ -109,8 +110,8 @@ class CommonFeatureConversion(Task):
         # Load, partition, and create the core dataset
 
         logger.debug("Reading core dataset.")
-        io = ParquetIO()
-        data = io.load(self._params["input_filepath"], engine="auto")
+        io = CsvIO()
+        data = io.load(self._params["input_filepath"])
 
         logger.debug("Partitioning core dataset")
         reindexed = data.reset_index()
@@ -129,10 +130,12 @@ class CommonFeatureConversion(Task):
         sdf = spark.createDataFrame(data)
         result = sdf.groupby("partition").apply(common_features)
 
+        df = result.toPandas()
+
         # Save the core dataset
         io.save(
-            result,
-            filepath=self._params["output_filepath1"],
+            df,
+            filepath=self._params["output_filepath"],
             engine="auto",
             partition_cols=["common_features_index"],
         )
@@ -159,6 +162,7 @@ def core_features(partition):
     output = pd.DataFrame()
 
     for _, row in partition.iterrows():
+        print(row)
         sample_id = int(row[0])
         num_features = int(row[1])
         feature_string = row[2]
@@ -241,10 +245,10 @@ def parse_feature_string(
     feature_values = []
 
     # Expand into a list of feature structures
-    feature_structures = re.split("\x01", feature_string)
+    feature_structures = re.split("\x01", str(feature_string))
 
     for structure in feature_structures:
-        name, id, value = re.split("\x02|\x03", structure)
+        name, id, value = re.split("\x02|\x03", str(structure))
         feature_names.append(name)
         feature_ids.append(int(id))
         feature_values.append(float(value))

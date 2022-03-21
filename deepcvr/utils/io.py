@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 6:41:17 pm                                              #
-# Modified : Saturday, March 19th 2022, 5:06:13 am                                                 #
+# Modified : Saturday, March 19th 2022, 5:48:26 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -55,7 +55,7 @@ class ParquetIO(IO):
     ) -> pd.DataFrame:
 
         with ProgressBar():
-            df = pd.read_parquet(filepath, engine=engine, index=index, columns=columns)
+            df = pd.read_parquet(filepath, engine=engine, columns=columns)
         return df
 
     def save(
@@ -69,7 +69,7 @@ class ParquetIO(IO):
     ) -> None:
 
         with ProgressBar():
-            data.to_parquet(filepath, engine=engine, index=index, partition_cols=partition_cols)
+            data.to_parquet(filepath, engine=engine, partition_cols=partition_cols)
 
 
 # ------------------------------------------------------------------------------------------------ #

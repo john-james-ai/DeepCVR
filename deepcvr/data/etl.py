@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Thursday, March 17th 2022, 2:35:47 am                                                 #
-# Modified : Thursday, March 17th 2022, 10:50:51 pm                                                #
+# Modified : Monday, March 21st 2022, 2:02:17 am                                                   #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -20,8 +20,8 @@
 """Extract, Transform Load of Source Data into Database"""
 import os
 from datetime import datetime
-from deepcvr.data.base import DagBuilder
-from deepcvr.data.base import Task
+from deepcvr.base.dag import DagBuilder
+from deepcvr.base.task import Task
 from deepcvr.utils.config import config_dag
 from deepcvr.utils.printing import Printer
 from deepcvr.utils.format import titlelize

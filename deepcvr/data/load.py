@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, March 12th 2022, 5:34:59 am                                                 #
-# Modified : Saturday, March 19th 2022, 4:56:35 am                                                 #
+# Modified : Monday, March 21st 2022, 12:54:35 am                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -23,8 +23,8 @@ from pymysql import connect
 from pymysql.cursors import DictCursor
 from typing import Any
 
-from deepcvr.data.base import Task
-from deepcvr.utils.io import ParquetIO
+from deepcvr.base.task import Task
+from deepcvr.utils.io import CsvIO
 from deepcvr.utils.decorators import task_event
 
 
@@ -127,7 +127,7 @@ class DataLoader(Task):
     @task_event
     def execute(self, context: Any = None) -> None:
 
-        io = ParquetIO()
+        io = CsvIO()
 
         engine = sqlalchemy.create_engine(
             context["database_uri"][self._params["connection_string"]]
