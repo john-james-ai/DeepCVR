@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, February 14th 2022, 12:32:13 pm                                               #
-# Modified : Monday, March 21st 2022, 1:52:24 am                                                   #
+# Modified : Monday, March 21st 2022, 4:09:53 am                                                   #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -23,9 +23,10 @@ import re
 import boto3
 import logging
 import pandas as pd
+from pyspark.sql import SparkSession
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 from pyspark.sql.types import StructType, StructField
-from pyspark.sql.types import StringType, IntegerType, LongType
+from pyspark.sql.types import StringType, LongType, DoubleType
 import inspect
 import progressbar
 import tarfile
@@ -34,16 +35,14 @@ from typing import Any
 from dotenv import load_dotenv
 
 from deepcvr.base.task import Task
-from deepcvr.base.spark import SparkPandasUDF
 from deepcvr.utils.decorators import task_event
 from deepcvr.utils.io import CsvIO
 
 # ------------------------------------------------------------------------------------------------ #
-# Uncomment for debugging
-
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------------------------ #
+MAX_PARTITION_SIZE = 1024 * 1024
 
 
 class S3Downloader(Task):
@@ -73,7 +72,7 @@ class S3Downloader(Task):
 
     @task_event
     def execute(self, context: Any = None) -> Any:
-        logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
         load_dotenv()
 
         object_keys = self._list_bucket_contents()
@@ -105,7 +104,7 @@ class S3Downloader(Task):
 
     def _download(self, object_key: str, destination: str) -> None:
         """Downloads object designated by the object ke if not exists or force is True"""
-        logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
         response = self._s3.head_object(Bucket=self._bucket, Key=object_key)
         size = response["ContentLength"]
 
@@ -151,7 +150,7 @@ class Decompress(Task):
     def execute(self, context: Any = None) -> Any:
         """Extracts and stores the data, then pushes filepaths to xCom."""
 
-        logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
         # Create destination if it doesn't exist
         os.makedirs(self._destination, exist_ok=True)
@@ -208,7 +207,7 @@ class Stage(Task):
         columns = self._params["columns"]
         dtypes = self._params["dtypes"]
 
-        logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
+        logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
         # Add partitioning variables to the file
         partitioning_cols = []
@@ -228,93 +227,183 @@ class Stage(Task):
 
 
 # ------------------------------------------------------------------------------------------------ #
-class CoreFeatureExtractor(SparkPandasUDF):
-    """Extracts core features from dataset in preparation for feature transformation"""
+class FeatureExtractor(Task):
+    """Base class for Feature Extractors"""
+
+    def __init__(self, task_id: int, task_name: str, params: list) -> None:
+        super(FeatureExtractor, self).__init__(task_id=task_id, task_name=task_name, params=params)
+        self._input_filepath = self._params["input_filepath"]
+        self._output_filepath = self._params["output_filepath"]
+        self._cores = self._params["cores"]
+        self._columns = self._params["columns"]
+
+        self._io = CsvIO()
+
+    def _load_partitioned_data(self) -> pd.DataFrame:
+        """Loads and adds a partition variable to the dataframe"""
+
+        data = self._io.load(self._input_filepath, usecols=self._columns)
+        size_in_memory = data.memory_usage(deep=True).sum()
+        num_partitions = int(size_in_memory / MAX_PARTITION_SIZE)
+        num_partitions_setting = max(180, num_partitions)
+        reindexed = data.reset_index()
+        data["partition"] = reindexed.index % num_partitions_setting
+        return data
+
+
+# ------------------------------------------------------------------------------------------------ #
+#                                      CORE FEATURES                                               #
+# ------------------------------------------------------------------------------------------------ #
+class CoreFeatureExtractor(FeatureExtractor):
+    """Extracts, reformats and stores core features in a format for loading. """
 
     def __init__(self, task_id: int, task_name: str, params: list) -> None:
         super(CoreFeatureExtractor, self).__init__(
             task_id=task_id, task_name=task_name, params=params
         )
 
-    @property
-    def schema(self) -> StructType:
+    @task_event
+    def execute(self, context: Any = None) -> None:
+        """Core feature extraction and conversion
 
-        schema = StructType(
-            [
-                StructField("sample_id", LongType(), False),
-                StructField("num_features", LongType(), False),
-                StructField("features_list", StringType(), False),
-                StructField("partition", IntegerType(), False),
-            ]
+        Args:
+            context (dict): Context data for the DAG
+        """
+
+        logger.debug("\tReading and partition core dataset.")
+        data = self._load_partitioned_data()
+
+        logger.debug("\tCreate Spark context")
+        cores = str("local[" + str(self._cores) + "]")
+        spark = (
+            SparkSession.builder.master(cores).appName("DeepCVR Core Features ETL").getOrCreate()
         )
 
-        return schema
+        spark.sparkContext.setLogLevel("ERROR")
 
-    @pandas_udf(schema, PandasUDFType.GROUPED_MAP)
-    def _process_partition(self, partition: pd.DataFrame) -> pd.DataFrame:
+        logger.debug("\tCreating dataframe")
+        sdf = spark.createDataFrame(data)
+        logger.debug("\tProcessing Groupby")
+        result = sdf.groupby("partition").apply(core_features)
+        logger.debug("\tConverted to Pandas dataframe")
+        df = result.toPandas()
+        logger.debug(df.head())
 
-        output = pd.DataFrame()
-
-        for _, row in partition.iterrows():
-            sample_id = int(row[0])
-            num_features = int(row[1])
-            feature_string = row[2]
-
-            df = parse_feature_string(
-                id_name="sample_id",
-                id_value=sample_id,
-                num_features=num_features,
-                feature_string=feature_string,
-            )
-
-            output = pd.concat([output, df], axis=0)
-
-        return output
+        # Save the core dataset
+        self._io.save(df, filepath=self._output_filepath)
+        logger.debug("Collect the result and save the dataframe")
 
 
 # ------------------------------------------------------------------------------------------------ #
-class CommonFeatureExtractor(SparkPandasUDF):
-    """Extracts core features from dataset in preparation for feature transformation"""
+core_schema = StructType(
+    [
+        StructField("sample_id", LongType(), False),
+        StructField("feature_name", StringType(), False),
+        StructField("feature_id", LongType(), False),
+        StructField("feature_value", DoubleType(), False),
+    ]
+)
+
+
+# ------------------------------------------------------------------------------------------------ #
+@pandas_udf(core_schema, PandasUDFType.GROUPED_MAP)
+def core_features(partition):
+
+    output = pd.DataFrame()
+
+    for _, row in partition.iterrows():
+        sample_id = int(row[0])
+        num_features = int(row[1])
+        feature_string = row[2]
+
+        df = parse_feature_string(
+            id_name="sample_id",
+            id_value=sample_id,
+            num_features=num_features,
+            feature_string=feature_string,
+        )
+
+        output = pd.concat([output, df], axis=0)
+
+    return output
+
+
+# ------------------------------------------------------------------------------------------------ #
+#                                     COMMON FEATURES                                              #
+# ------------------------------------------------------------------------------------------------ #
+class CommonFeatureExtractor(FeatureExtractor):
+    """Extracts, reformats and stores common features in a format for loading. """
 
     def __init__(self, task_id: int, task_name: str, params: list) -> None:
         super(CommonFeatureExtractor, self).__init__(
             task_id=task_id, task_name=task_name, params=params
         )
 
-    @property
-    def schema(self) -> StructType:
+    @task_event
+    def execute(self, context: Any = None) -> None:
+        """Core feature extraction and conversion
 
-        schema = StructType(
-            [
-                StructField("common_features_index", StringType(), False),
-                StructField("num_features", LongType(), False),
-                StructField("features_list", StringType(), False),
-                StructField("partition", IntegerType(), False),
-            ]
+        Args:
+            context (dict): Context data for the DAG
+        """
+
+        logger.debug("\tReading and partition core dataset.")
+        data = self._load_partitioned_data()
+
+        logger.debug("\tCreate Spark context")
+        cores = str("local[" + str(self._cores) + "]")
+        spark = (
+            SparkSession.builder.master(cores).appName("DeepCVR Core Features ETL").getOrCreate()
         )
 
-        return schema
+        spark.sparkContext.setLogLevel("ERROR")
 
-    @pandas_udf(schema, PandasUDFType.GROUPED_MAP)
-    def _process_partition(self, partition: pd.DataFrame) -> pd.DataFrame:
+        logger.debug("\tCreate Spark dataframe")
+        sdf = spark.createDataFrame(data)
+        logger.debug("\tDataFrame created")
+        result = sdf.groupby("partition").apply(common_features)
+        logger.debug("\tResults Produced")
+        df = result.toPandas()
+        logger.debug("\tConverted to Pandas")
 
-        output = pd.DataFrame()
+        # Save the core dataset
+        self._io.save(df, filepath=self._output_filepath)
+        logger.debug("\tCollect the result and save the dataframe")
 
-        for _, row in partition.iterrows():
-            common_features_index = int(row[0])
-            num_features = int(row[1])
-            feature_string = row[2]
 
-            df = parse_feature_string(
-                id_name="common_features_index",
-                id_value=common_features_index,
-                num_features=num_features,
-                feature_string=feature_string,
-            )
+# ------------------------------------------------------------------------------------------------ #
+common_schema = StructType(
+    [
+        StructField("common_features_index", StringType(), False),
+        StructField("feature_name", StringType(), False),
+        StructField("feature_id", LongType(), False),
+        StructField("feature_value", DoubleType(), False),
+    ]
+)
 
-            output = pd.concat([output, df], axis=0)
+# ------------------------------------------------------------------------------------------------ #
 
-        return output
+
+@pandas_udf(common_schema, PandasUDFType.GROUPED_MAP)
+def common_features(partition):
+
+    output = pd.DataFrame()
+
+    for _, row in partition.iterrows():
+        common_features_index = row[0]
+        num_features = int(row[1])
+        feature_string = row[2]
+
+        df = parse_feature_string(
+            id_name="common_features_index",
+            id_value=common_features_index,
+            num_features=num_features,
+            feature_string=feature_string,
+        )
+
+        output = pd.concat([output, df], axis=0)
+
+    return output
 
 
 # ------------------------------------------------------------------------------------------------ #
@@ -363,5 +452,5 @@ def parse_feature_string(
     df = pd.DataFrame(data=d)
 
     # Confirms number of rows equals expected number of features.
-    assert df.shape[0] == num_features, print("Feature count doesn't not match num_features")
+    assert df.shape[0] == num_features, logger.error("Feature count doesn't not match num_features")
     return df
