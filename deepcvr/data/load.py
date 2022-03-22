@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, March 12th 2022, 5:34:59 am                                                 #
-# Modified : Monday, March 21st 2022, 12:54:35 am                                                  #
+# Modified : Monday, March 21st 2022, 10:12:57 pm                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -28,48 +28,86 @@ from deepcvr.utils.io import CsvIO
 from deepcvr.utils.decorators import task_event
 
 
-# ------------------------------------------------------------------------------------------------ #
+# ================================================================================================ #
 #                                DATABASE DEFINITION LANGUAGE                                      #
-# ------------------------------------------------------------------------------------------------ #
+# ================================================================================================ #
 """Defines the DDL for the ETL process"""
 DDL = {}
-
+# ------------------------------------------------------------------------------------------------ #
+#                             FOREIGN KEY CHECKS OFF                                               #
+# ------------------------------------------------------------------------------------------------ #
 DDL["foreign_key_checks_off"] = """SET FOREIGN_KEY_CHECKS = 0;"""
 DDL["foreign_key_checks_on"] = """SET FOREIGN_KEY_CHECKS = 1;"""
-
-# Drop Foreign Key Constraints
-DDL["drop_constraint_features"] = """ALTER TABLE features DROP FOREIGN KEY fk_features;"""
-DDL[
-    "drop_constraint_common_features"
-] = """ALTER TABLE common_features DROP FOREIGN KEY FK_tbl_common_features_ibfk_1;"""
-
-
-# Drop Databases
+# ------------------------------------------------------------------------------------------------ #
+#                                    DROP TABLES                                                   #
+# ------------------------------------------------------------------------------------------------ #
+DDL["drop_tables"] = """DROP TABLE IF EXISTS common_features, features, cvr;"""
+# ------------------------------------------------------------------------------------------------ #
+#                                  DROP DATABASES                                                  #
+# ------------------------------------------------------------------------------------------------ #
 DDL["drop_development_train_db"] = """DROP DATABASE IF EXISTS deepcvr_development_train;"""
 DDL["drop_development_test_db"] = """DROP DATABASE IF EXISTS deepcvr_development_test;"""
 DDL["drop_production_train_db"] = """DROP DATABASE IF EXISTS deepcvr_train;"""
 DDL["drop_production_test_db"] = """DROP DATABASE IF EXISTS deepcvr_test;"""
 
-# Create Databases
+# ------------------------------------------------------------------------------------------------ #
+#                                 CREATE DATABASES                                                 #
+# ------------------------------------------------------------------------------------------------ #
 DDL["create_development_train_db"] = """CREATE DATABASE deepcvr_development_train;"""
 DDL["create_development_test_db"] = """CREATE DATABASE deepcvr_development_test;"""
 DDL["create_production_train_db"] = """CREATE DATABASE deepcvr_train;"""
 DDL["create_production_test_db"] = """CREATE DATABASE deepcvr_test;"""
 
+# ------------------------------------------------------------------------------------------------ #
+#                                  CREATE TABLES                                                   #
+# ------------------------------------------------------------------------------------------------ #
+# cvr table
 DDL[
-    "add_primary_key_impressions"
+    "create_cvr_table"
 ] = """
-ALTER TABLE impressions ADD PRIMARY KEY(sample_id);
+CREATE TABLE cvr (
+    sample_id BIGINT(20) NOT NULL PRIMARY KEY,
+    click_label BIGINT(8) NOT NULL,
+    conversion_label BIGINT(8) NOT NULL,
+    common_features_index VARCHAR(64) NOT NULL,
+    num_features BIGINT(8) NOT NULL,
+    INDEX cfi (common_features_index)
+) ENGINE=INNODB;
+"""
+# features table
+DDL[
+    "create_features_table"
+] = """
+CREATE TABLE features (
+    id BIGINT(12) AUTO_INCREMENT PRIMARY KEY,
+    sample_id BIGINT(20) NOT NULL,
+    feature_name VARCHAR(32) NOT NULL,
+    feature_id BIGINT(8) NOT NULL,
+    feature_value DOUBLE(8,2) NOT NULL,
+    CONSTRAINT fk_cvr_sample_id
+    FOREIGN KEY (sample_id)
+        REFERENCES cvr(sample_id)
+) ENGINE=INNODB;
 """
 
+# common_features table
 DDL[
-    "add_foreign_key_constraint_1"
+    "create_common_features_table"
 ] = """
-ALTER TABLE features
-ADD CONSTRAINT fk_features
-FOREIGN KEY (sample_id)
-REFERENCES impressions(sample_id)
+CREATE TABLE common_features (
+    id BIGINT(12) AUTO_INCREMENT PRIMARY KEY,
+    common_features_index VARCHAR(64) NOT NULL,
+    feature_name VARCHAR(32) NOT NULL,
+    feature_id BIGINT(8) NOT NULL,
+    feature_value DOUBLE(8,2) NOT NULL,
+    CONSTRAINT fk_cvr_cfi
+    FOREIGN KEY (common_features_index)
+        REFERENCES cvr(common_features_index)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+) ENGINE=INNODB;
 """
+
 
 # ------------------------------------------------------------------------------------------------ #
 #                                  DATABASE DEFINITION CLASS                                       #
@@ -146,5 +184,5 @@ class DataLoader(Task):
         data = data[columns]
 
         data.to_sql(
-            name=self._params["table"], con=engine, index=False, if_exists="replace", dtype=dtypes,
+            name=self._params["table"], con=engine, index=False, if_exists="append", dtype=dtypes,
         )

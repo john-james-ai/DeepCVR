@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 4:08:17 pm                                                #
-# Modified : Monday, March 21st 2022, 2:02:17 am                                                   #
+# Modified : Monday, March 21st 2022, 8:12:03 pm                                                   #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -42,24 +42,35 @@ class TestTransform:
 
         logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
-        shutil.rmtree("tests/data/development/transformed", ignore_errors=True)
+        shutil.rmtree("tests/data/preprocessed/", ignore_errors=True)
+        shutil.rmtree("tests/data/staged/", ignore_errors=True)
 
         config_filepath = "tests/test_config/transform.yaml"
-        mode = "test"
+        mode = "train"
         config = config_dag(config_filepath)[mode]
 
         dag = DagBuilder(config=config).build()
 
         dag.run()
 
+        trainfiles = [
+            "tests/data/staged/train/cvr_train.csv",
+            "tests/data/staged/train/cvr_core_features_train.csv",
+            "tests/data/staged/train/cvr_common_features_train.csv",
+        ]
+
+        testfiles = [
+            "tests/data/staged/test/cvr_test.csv",
+            "tests/data/staged/test/cvr_core_features_test.csv",
+            "tests/data/staged/test/cvr_common_features_test.csv",
+        ]
+
         if mode == "train":
-            assert len(os.listdir("tests/data/transformed/train")) == 4, logger.error(
-                "Unexpected files in transformed train directory"
-            )
+            for file in trainfiles:
+                assert os.path.exists(file), logger.error("{} is missing".format(file))
         else:
-            assert len(os.listdir("tests/data/transformed/test")) == 4, logger.error(
-                "Unexpected files in transformed test directory"
-            )
+            for file in testfiles:
+                assert os.path.exists(file), logger.error("{} is missing".format(file))
 
         logger.info(
             "\tSuccessfully completed {} {}".format(self.__class__.__name__, inspect.stack()[0][3])

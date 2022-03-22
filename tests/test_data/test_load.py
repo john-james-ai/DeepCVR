@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 4:08:17 pm                                                #
-# Modified : Monday, March 21st 2022, 2:02:17 am                                                   #
+# Modified : Monday, March 21st 2022, 9:50:57 pm                                                   #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -41,7 +41,7 @@ class TestLoad:
         logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
         config_filepath = "tests/test_config/load.yaml"
-        mode = "test"
+        mode = "train"
         config = config_dag(config_filepath)[mode]
         # Credentials go to context
         credentials_filepath = "tests/test_config/credentials.yaml"
