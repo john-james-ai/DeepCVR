@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, February 25th 2022, 4:08:17 pm                                                #
-# Modified : Monday, March 21st 2022, 3:05:59 am                                                   #
+# Modified : Tuesday, March 22nd 2022, 1:03:55 pm                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -41,7 +41,9 @@ class TestExtract:
 
         logger.info("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
-        shutil.rmtree("tests/data/", ignore_errors=True)
+        shutil.rmtree("tests/data/raw/", ignore_errors=True)
+        shutil.rmtree("tests/data/preprocessed/", ignore_errors=True)
+        shutil.rmtree("tests/data/staged/", ignore_errors=True)
 
         config_filepath = "tests/test_config/extract.yaml"
         config = config_dag(config_filepath)

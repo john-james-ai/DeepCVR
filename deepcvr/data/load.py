@@ -11,20 +11,20 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, March 12th 2022, 5:34:59 am                                                 #
-# Modified : Monday, March 21st 2022, 10:12:57 pm                                                  #
+# Modified : Tuesday, March 22nd 2022, 5:42:47 am                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
 # Copyright: (c) 2022 Bryant St. Labs                                                              #
 # ================================================================================================ #
 """Tasks that complete the Load phase of the ETL DAG"""
+import pandas as pd
 import sqlalchemy
 from pymysql import connect
 from pymysql.cursors import DictCursor
 from typing import Any
 
-from deepcvr.base.task import Task
-from deepcvr.utils.io import CsvIO
+from deepcvr.base.operator import Operator
 from deepcvr.utils.decorators import task_event
 
 
@@ -41,7 +41,7 @@ DDL["foreign_key_checks_on"] = """SET FOREIGN_KEY_CHECKS = 1;"""
 # ------------------------------------------------------------------------------------------------ #
 #                                    DROP TABLES                                                   #
 # ------------------------------------------------------------------------------------------------ #
-DDL["drop_tables"] = """DROP TABLE IF EXISTS common_features, features, cvr;"""
+DDL["drop_tables"] = """DROP TABLE IF EXISTS common_features, features, cvr, cvr_schema;"""
 # ------------------------------------------------------------------------------------------------ #
 #                                  DROP DATABASES                                                  #
 # ------------------------------------------------------------------------------------------------ #
@@ -61,17 +61,30 @@ DDL["create_production_test_db"] = """CREATE DATABASE deepcvr_test;"""
 # ------------------------------------------------------------------------------------------------ #
 #                                  CREATE TABLES                                                   #
 # ------------------------------------------------------------------------------------------------ #
+# Schema table
+DDL[
+    "create_schema_table"
+] = """
+CREATE TABLE cvr_schema (
+    feature_name VARCHAR(32) NOT NULL PRIMARY KEY,
+    feature_category VARCHAR(64) NOT NULL,
+    feature_description VARCHAR(256) NOT NULL
+) ENGINE=INNODB;
+"""
 # cvr table
 DDL[
     "create_cvr_table"
 ] = """
 CREATE TABLE cvr (
     sample_id BIGINT(20) NOT NULL PRIMARY KEY,
+    label VARCHAR(12) NOT NULL,
     click_label BIGINT(8) NOT NULL,
     conversion_label BIGINT(8) NOT NULL,
     common_features_index VARCHAR(64) NOT NULL,
     num_features BIGINT(8) NOT NULL,
-    INDEX cfi (common_features_index)
+
+    INDEX cfi (common_features_index),
+    INDEX label_ind (label)
 ) ENGINE=INNODB;
 """
 # features table
@@ -84,9 +97,18 @@ CREATE TABLE features (
     feature_name VARCHAR(32) NOT NULL,
     feature_id BIGINT(8) NOT NULL,
     feature_value DOUBLE(8,2) NOT NULL,
-    CONSTRAINT fk_cvr_sample_id
+
+    INDEX (sample_id),
+    INDEX (feature_name),
+
     FOREIGN KEY (sample_id)
         REFERENCES cvr(sample_id)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+
+    FOREIGN KEY (feature_name)
+        REFERENCES cvr_schema(feature_name)
+
+
 ) ENGINE=INNODB;
 """
 
@@ -100,11 +122,18 @@ CREATE TABLE common_features (
     feature_name VARCHAR(32) NOT NULL,
     feature_id BIGINT(8) NOT NULL,
     feature_value DOUBLE(8,2) NOT NULL,
-    CONSTRAINT fk_cvr_cfi
+
+    INDEX (common_features_index),
+    INDEX (feature_name),
+
     FOREIGN KEY (common_features_index)
         REFERENCES cvr(common_features_index)
         ON UPDATE CASCADE
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (feature_name)
+        REFERENCES cvr_schema (feature_name)
+
 ) ENGINE=INNODB;
 """
 
@@ -114,7 +143,7 @@ CREATE TABLE common_features (
 # ------------------------------------------------------------------------------------------------ #
 
 
-class DbDefine(Task):
+class DbDefine(Operator):
     """Used to create, drop, constrain, adn define databases and tables.
 
     Args:
@@ -128,7 +157,7 @@ class DbDefine(Task):
         super(DbDefine, self).__init__(task_id=task_id, task_name=task_name, params=params)
 
     @task_event
-    def execute(self, context: Any = None) -> None:
+    def execute(self, data: pd.DataFrame = None, context: Any = None) -> None:
 
         # Obtain credentials for mysql database from context
         credentials = context["john"]
@@ -156,22 +185,18 @@ class DbDefine(Task):
 # ------------------------------------------------------------------------------------------------ #
 
 
-class DataLoader(Task):
+class DataLoader(Operator):
     """Loads data into tables."""
 
     def __init__(self, task_id: int, task_name: str, params: dict) -> None:
         super(DataLoader, self).__init__(task_id=task_id, task_name=task_name, params=params)
 
     @task_event
-    def execute(self, context: Any = None) -> None:
-
-        io = CsvIO()
+    def execute(self, data: pd.DataFrame = None, context: Any = None) -> None:
 
         engine = sqlalchemy.create_engine(
             context["database_uri"][self._params["connection_string"]]
         )
-
-        data = io.load(filepath=self._params["filepath"])
 
         # Identify columns and convert strings to sqlalchemy datatypes
         columns = []

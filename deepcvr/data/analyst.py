@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Friday, March 18th 2022, 1:09:47 am                                                   #
-# Modified : Friday, March 18th 2022, 6:01:51 pm                                                   #
+# Modified : Tuesday, March 22nd 2022, 5:50:16 am                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -138,19 +138,55 @@ class FeatureAnalyst(ABC):
     # -------------------------------------------------------------------------------------------- #
     #                                        DATA ACCESS                                           #
     # -------------------------------------------------------------------------------------------- #
-    def get_data(self, feature_name: str = None) -> pd.DataFrame:
+    def get_feature_data(self, feature_name: str = None) -> pd.DataFrame:
+        """Returns click and conversion labels with the feature name and values."""
+        if feature_name is None:
+            data = self._get_all_features()
+        else:
+            data = self._get_feature_data(feature_name=feature_name)
         """Returns feature value for the provided feature_name. If feature_name is None,
         all feature data are returned.
         """
+        # statement = """SELECT t1.click_label, t1.conversion_label, t2.feature_name,
+        # t2.feature_value
+        #     FROM cvr t1 RIGHT JOIN features t2 ON t1.sample_id = t2.sample_id
+        #     WHERE t2.feature_name = %s
+        # UNION ALL
+        # SELECT t1.click_label, t1.conversion_label, t3.feature_name, t3.feature_value
+        #     FROM cvr t1 RIGHT JOIN common_features t3 ON t1.common_features_index =
+        #     t3.common_features_index
+        #     WHERE t3.feature_name = '%s';"""
 
-        if feature_name:
-            statement = "SELECT * FROM features WHERE feature_name=%s;"
-            data = self._dao.select(statement=statement, params=((self._feature_name,)))
-        else:
-            statement = "SELECT * FROM features;"
-            data = self._dao.select(statement=statement)
-
+        # data = self._dao.select(statement=stmt, params=(feature_name,))
         return data
+
+    # -------------------------------------------------------------------------------------------- #
+    def get_all_features(self) -> pd.DataFrame:
+        """Returns all features with values and click/conversion labels."""
+
+        # statement = """SELECT   sample.click_label,
+        #                 sample.conversion_label,
+        #                 feature.feature_name,
+        #                 feature.feature_value
+        #         CASE WHEN sample.click_label = 0 AND sample.conversion_label = 0 THEN 'View'
+        #              WHEN sample.click_label = 1 AND sample.conversion_label = 0 THEN 'Click'
+        #              ELSE 'Convert' END as label
+        #         FROM cvr sample
+        #         RIGHT JOIN features feature ON
+        #             sample.sample_id = feature.sample_id
+
+        #         UNION ALL
+
+        #         SELECT  sample.click_label,
+        #                 sample.conversion_label,
+        #                 common.feature_name,
+        #                 common.feature_value
+        #         CASE WHEN sample.click_label = 0 AND sample.conversion_label = 0 THEN 'View'
+        #              WHEN sample.click_label = 1 AND sample.conversion_label = 0 THEN 'Click'
+        #              ELSE 'Convert' END as label
+        #         FROM cvr sample
+        #         RIGHT JOIN common_features common ON
+        #             sample.common_features_index = common.common_features_index;"""
 
     # -------------------------------------------------------------------------------------------- #
     def sample_data(
@@ -165,7 +201,7 @@ class FeatureAnalyst(ABC):
             random_state (int): Seed for pseudo random number generation
         """
 
-        df = self.get_features()
+        df = self.get_feature_data(feature_name=feature_name)
         return df.sample(n=n, replace=False, axis=0, ignore_index=False, random_state=random_state)
 
     # -------------------------------------------------------------------------------------------- #
@@ -173,7 +209,7 @@ class FeatureAnalyst(ABC):
     # -------------------------------------------------------------------------------------------- #
     def get_unique(self, feature_name: str = None) -> list:
         """Returns a list of unique values for a feature"""
-        df = self.get_features()
+        df = self.get_feature_data()
         return df["feature_value"].unique()
 
     # -------------------------------------------------------------------------------------------- #
@@ -184,13 +220,13 @@ class FeatureAnalyst(ABC):
     # -------------------------------------------------------------------------------------------- #
     def get_uniqueness(self) -> float:
         """Returns degree of uniqueness as a percentage of observations"""
-        df = self.get_features()
+        df = self.get_feature_data()
         return self.get_nunique() / df.shape[0] * 100
 
     # -------------------------------------------------------------------------------------------- #
     def get_value_counts(self) -> pd.DataFrame:
         if self._value_counts is None:
-            df = self.get_features()
+            df = self.get_feature_data()
             vc = (
                 df["feature_value"]
                 .value_counts(sort=True, ascending=False, dropna=True)
@@ -210,19 +246,19 @@ class FeatureAnalyst(ABC):
     def get_missing_count(self, feature_name: str = None) -> int:
         """Returns the number of missing observations for the feature_name or the feature
         dataset if no feature_name is provided."""
-        df = self.get_features()
+        df = self.get_feature_data()
         return sum(df.loc[df["feature_value"].isna()])
 
     # -------------------------------------------------------------------------------------------- #
     def get_missingness(self) -> float:
         """Returns the percentage of the feature values that are missing """
-        df = self.get_features()
+        df = self.get_feature_data()
         return self.get_missing_count() / df.shape[0] * 100
 
     # -------------------------------------------------------------------------------------------- #
     def describe(self) -> pd.DataFrame:
         """Return descriptive statistics for the feature"""
-        df = self.get_features()
+        df = self.get_feature_data()
         return df["feature_value"].describe()
 
     # -------------------------------------------------------------------------------------------- #
@@ -349,7 +385,7 @@ class NumericFeatureAnalyst(FeatureAnalyst):
     ) -> plt.Axes:
         """Represents distribution of data of continuous variables"""
 
-        df = self.get_features()
+        df = self.get_feature_data()
         sns.histplot(data=df, x="feature_value", palette=self._palette, ax=self._ax)
 
         return self._finalize(title=title, filepath=filepath, show=show, **kwargs)
@@ -359,7 +395,7 @@ class NumericFeatureAnalyst(FeatureAnalyst):
         self, title: str = None, filepath: str = None, show: bool = True, **kwargs
     ) -> plt.Axes:
 
-        df = self.get_features()
+        df = self.get_feature_data()
         sns.boxplot(x="feature_value", data=df, palette=self._palette, ax=self._ax)
 
         return self._finalize(title=title, filepath=filepath, show=show, **kwargs)

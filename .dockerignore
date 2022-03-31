@@ -1,0 +1,10 @@
+# Data
+*.csv
+data/**/*.csv
+
+# Notes
+notes/*.*
+setup/*.*
+
+# Logs
+logs/*.*

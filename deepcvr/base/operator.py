@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Tuesday, March 8th 2022, 8:48:19 pm                                                   #
-# Modified : Monday, March 21st 2022, 12:51:51 am                                                  #
+# Modified : Thursday, March 31st 2022, 1:08:51 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -19,13 +19,15 @@
 # ================================================================================================ #
 """Defines the interfaces for classes involved in the construction and implementation of DAGS."""
 from abc import ABC, abstractmethod
+import pandas as pd
 from typing import Any
+
 
 # ------------------------------------------------------------------------------------------------ #
 
 
-class Task(ABC):
-    """Abstract class for task classes
+class Operator(ABC):
+    """Abstract class for operator classes
 
     Args:
         task_id (int): A number, typically used to indicate the sequence of the task within a DAG
@@ -59,5 +61,5 @@ class Task(ABC):
         return self._params
 
     @abstractmethod
-    def execute(self) -> Any:
+    def execute(self, data: pd.DataFrame = None, context: dict = None) -> Any:
         pass

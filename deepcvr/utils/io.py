@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, February 26th 2022, 6:41:17 pm                                              #
-# Modified : Monday, March 21st 2022, 10:15:16 pm                                                  #
+# Modified : Thursday, March 31st 2022, 6:17:40 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -80,7 +80,7 @@ class CsvIO(IO):
         self,
         filepath: str,
         sep: str = ",",
-        header: list = "infer",
+        header: list = None,
         names: list = None,
         usecols: list = None,
         index_col: bool = False,
@@ -117,7 +117,7 @@ class CsvIO(IO):
         self,
         filepath: str,
         sep: str = ",",
-        header: list = "infer",
+        header: list = None,
         names: list = None,
         usecols: list = None,
         index_col: bool = False,
@@ -154,7 +154,7 @@ class CsvIO(IO):
         self,
         filepath: str,
         sep: str = ",",
-        header: list = "infer",
+        header: list = None,
         names: list = None,
         usecols: list = None,
         index_col: bool = False,

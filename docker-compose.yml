@@ -1,0 +1,41 @@
+version: '3.9'
+
+# Run as
+# docker-compose build; docker-compose up -d
+# Check with
+# docker ps
+# Then check the logs with
+# docker logs --tail 50 $service_name
+# docker-compose images
+# docker-compose logs --tail 20 $service_name
+
+services:
+
+  deepcvr_db:
+    image: "mysql:8.0.28"
+    container_name: mysql
+    restart: always
+    environment:
+      # Set up mysql database name and password
+      MYSQL_ROOT_PASSWORD: 'j2ssql'
+      MYSQL_DATABASE: 'deepcvr'
+      MYSQL_USER: 'john'
+      MYSQL_PASSWORD: 'j2ssql'
+    ports:
+      - 3306:3306
+    expose:
+      - 3306
+
+  deepcvr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: deepcvr
+    depends_on:
+      - deepcvr_db
+    command: sh -c "/wait && /sayhello"
+    environment:
+      - WAIT_HOSTS=mysql:3306
+      - WAIT_HOSTS_TIMEOUT=300
+      - WAIT_SLEEP_INTERVAL=30
+      - WAIT_HOST_CONNECT_TIMEOUT=30

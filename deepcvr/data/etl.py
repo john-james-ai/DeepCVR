@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Thursday, March 17th 2022, 2:35:47 am                                                 #
-# Modified : Monday, March 21st 2022, 2:02:17 am                                                   #
+# Modified : Tuesday, March 22nd 2022, 4:06:26 am                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -21,7 +21,7 @@
 import os
 from datetime import datetime
 from deepcvr.base.dag import DagBuilder
-from deepcvr.base.task import Task
+from deepcvr.base.operator import Operator
 from deepcvr.utils.config import config_dag
 from deepcvr.utils.printing import Printer
 from deepcvr.utils.format import titlelize
@@ -29,7 +29,7 @@ from deepcvr.utils.format import titlelize
 # ------------------------------------------------------------------------------------------------ #
 
 
-class ETL(Task):
+class ETL(Operator):
     """Extract Transform Load
 
     Args:

@@ -11,21 +11,22 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Tuesday, March 8th 2022, 8:48:19 pm                                                   #
-# Modified : Monday, March 21st 2022, 12:52:24 am                                                  #
+# Modified : Thursday, March 31st 2022, 5:34:35 am                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
 # Copyright: (c) 2022 Bryant St. Labs                                                              #
 # ================================================================================================ #
 """Defines the interfaces for classes involved in the construction and implementation of DAGS."""
+from abc import ABC, abstractmethod
 import importlib
 from typing import Any
 
 # ------------------------------------------------------------------------------------------------ #
 
 
-class Dag:
-    """Directed acyclic graph of tasks.
+class AbstractDAG(ABC):
+    """Abstract base class for directed acyclic graph of operations.
 
     Args:
         dag_id (str): Identifier for the dag
@@ -40,9 +41,34 @@ class Dag:
         self._tasks = tasks
         self._context = context
 
+    @abstractmethod
     def run(self) -> None:
+        pass
+
+
+# ------------------------------------------------------------------------------------------------ #
+
+
+class Dag(AbstractDAG):
+    """Directed acyclic graph of operations.
+
+    Args:
+        dag_id (str): Identifier for the dag
+        dag_description (str): Brief description
+        tasks (list): List of tasks to execute
+
+    """
+
+    def __init__(self, dag_id: str, dag_description: str, tasks: list, context: Any = None) -> None:
+        super(Dag, self).__init__(
+            dag_id=dag_id, dag_description=dag_description, tasks=tasks, context=context
+        )
+
+    def run(self) -> None:
+        data = None
         for task in self._tasks:
-            task.execute(context=self._context)
+            result = task.execute(data=data, context=self._context)
+            data = result if result is not None else data
 
 
 # ------------------------------------------------------------------------------------------------ #

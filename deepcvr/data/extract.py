@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, February 14th 2022, 12:32:13 pm                                               #
-# Modified : Monday, March 21st 2022, 7:41:42 pm                                                   #
+# Modified : Tuesday, March 22nd 2022, 5:51:24 am                                                  #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -21,6 +21,7 @@
 import os
 import boto3
 import logging
+import pandas as pd
 import inspect
 import progressbar
 import tarfile
@@ -28,7 +29,7 @@ from botocore.exceptions import NoCredentialsError
 from typing import Any
 from dotenv import load_dotenv
 
-from deepcvr.base.task import Task
+from deepcvr.base.operator import Operator
 from deepcvr.utils.decorators import task_event
 
 # ------------------------------------------------------------------------------------------------ #
@@ -37,7 +38,7 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------------------------ #
 
 
-class S3Downloader(Task):
+class S3Downloader(Operator):
     """Download operator for Amazon S3 Resources.
 
     Args:
@@ -63,7 +64,7 @@ class S3Downloader(Task):
         self._progressbar = None
 
     @task_event
-    def execute(self, context: Any = None) -> Any:
+    def execute(self, data: pd.DataFrame = None, context: Any = None) -> Any:
         logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
         load_dotenv()
 
@@ -119,7 +120,7 @@ class S3Downloader(Task):
 # ------------------------------------------------------------------------------------------------ #
 
 
-class Decompress(Task):
+class Decompress(Operator):
     """Decompresses a gzip archive, stores the raw data
 
     Args:
@@ -139,7 +140,7 @@ class Decompress(Task):
         self._force = params["force"]
 
     @task_event
-    def execute(self, context: Any = None) -> Any:
+    def execute(self, data: pd.DataFrame = None, context: Any = None) -> Any:
         """Extracts and stores the data, then pushes filepaths to xCom."""
 
         logger.debug("\tStarted {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))

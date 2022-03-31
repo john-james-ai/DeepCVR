@@ -13,13 +13,13 @@ __pycache__/
 **/.*yaml
 
 # Data
-*.csv
+data/**/*.csv
 **/tests/data/*
 
 # Notes and internal documents
 notes/*.*
 */_build/
-*/lab/
+*/lab/*
 
 # Logs
 **/logs*
