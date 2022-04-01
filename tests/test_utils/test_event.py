@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, March 14th 2022, 6:42:55 pm                                                   #
-# Modified : Wednesday, March 16th 2022, 7:10:35 pm                                                #
+# Modified : Thursday, March 31st 2022, 3:38:39 pm                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -20,7 +20,7 @@
 #%%
 import logging
 import inspect
-from deepcvr.utils.decorators import event, task_event
+from deepcvr.utils.decorators import event, operator
 
 # ------------------------------------------------------------------------------------------------ #
 logging.basicConfig(level=logging.DEBUG)
@@ -63,8 +63,8 @@ class TestTaskEvent1:
         self.d = d
         self.nd = nd
 
-    @task_event
-    def test_task_event_1(self):
+    @operator
+    def test_operator_1(self):
         logger.debug("\tInside {} {}".format(self.__class__.__name__, inspect.stack()[0][3]))
 
 
@@ -85,6 +85,6 @@ if __name__ == "__main__":
         d={"a": 3, "dict": 4},
         nd={"a": {"nested": {"dict": "4u"}}},
     )
-    t.test_task_event_1()
+    t.test_operator_1()
 
 #%%

@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Saturday, March 12th 2022, 5:34:59 am                                                 #
-# Modified : Tuesday, March 22nd 2022, 5:42:47 am                                                  #
+# Modified : Thursday, March 31st 2022, 3:38:39 pm                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -25,7 +25,7 @@ from pymysql.cursors import DictCursor
 from typing import Any
 
 from deepcvr.base.operator import Operator
-from deepcvr.utils.decorators import task_event
+from deepcvr.utils.decorators import operator
 
 
 # ================================================================================================ #
@@ -156,7 +156,7 @@ class DbDefine(Operator):
     def __init__(self, task_id: int, task_name: str, params: dict) -> None:
         super(DbDefine, self).__init__(task_id=task_id, task_name=task_name, params=params)
 
-    @task_event
+    @operator
     def execute(self, data: pd.DataFrame = None, context: Any = None) -> None:
 
         # Obtain credentials for mysql database from context
@@ -191,7 +191,7 @@ class DataLoader(Operator):
     def __init__(self, task_id: int, task_name: str, params: dict) -> None:
         super(DataLoader, self).__init__(task_id=task_id, task_name=task_name, params=params)
 
-    @task_event
+    @operator
     def execute(self, data: pd.DataFrame = None, context: Any = None) -> None:
 
         engine = sqlalchemy.create_engine(

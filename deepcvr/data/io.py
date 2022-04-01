@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/deepcvr                                              #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Tuesday, March 22nd 2022, 4:02:42 am                                                  #
-# Modified : Thursday, March 31st 2022, 6:50:07 am                                                 #
+# Modified : Thursday, March 31st 2022, 3:38:39 pm                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -23,7 +23,7 @@ from typing import Any
 
 from deepcvr.utils.io import CsvIO
 from deepcvr.base.operator import Operator
-from deepcvr.utils.decorators import task_event
+from deepcvr.utils.decorators import operator
 
 # ------------------------------------------------------------------------------------------------ #
 #                                           IO                                                     #
@@ -52,7 +52,7 @@ class CSVReader(IO):
     def __init__(self, task_id: int, task_name: str, params: list) -> None:
         super(CSVReader, self).__init__(task_id=task_id, task_name=task_name, params=params)
 
-    @task_event
+    @operator
     def execute(self, data: pd.DataFrame = None, context: Any = None) -> pd.DataFrame:
         """Reads from the designated resource"""
         io = CsvIO()
@@ -75,7 +75,7 @@ class CSVWriter(IO):
     def __init__(self, task_id: int, task_name: str, params: list) -> None:
         super(CSVWriter, self).__init__(task_id=task_id, task_name=task_name, params=params)
 
-    @task_event
+    @operator
     def execute(self, data: pd.DataFrame = None, context: Any = None) -> pd.DataFrame:
         """Reads from the designated resource"""
         io = CsvIO()

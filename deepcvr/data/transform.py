@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Sunday, February 27th 2022, 10:11:02 am                                               #
-# Modified : Thursday, March 31st 2022, 6:38:16 am                                                 #
+# Modified : Thursday, March 31st 2022, 3:38:39 pm                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -28,7 +28,7 @@ import numpy as np
 from typing import Any
 
 from deepcvr.base.operator import Operator
-from deepcvr.utils.decorators import task_event
+from deepcvr.utils.decorators import operator
 
 # ------------------------------------------------------------------------------------------------ #
 logging.basicConfig(level=logging.INFO)
@@ -46,7 +46,7 @@ class ColumnLabeler(Operator):
     def __init__(self, task_id: int, task_name: str, params: list) -> None:
         super(ColumnLabeler, self).__init__(task_id=task_id, task_name=task_name, params=params)
 
-    @task_event
+    @operator
     def execute(self, data: pd.DataFrame = None, context: Any = None) -> Any:
         """Executes the labeling task
 
@@ -69,7 +69,7 @@ class TargetLabeler(Operator):
     def __init__(self, task_id: int, task_name: str, params: list) -> None:
         super(TargetLabeler, self).__init__(task_id=task_id, task_name=task_name, params=params)
 
-    @task_event
+    @operator
     def execute(self, data: pd.DataFrame = None, context: Any = None) -> Any:
         """Executes the preprocessing task
 
@@ -99,7 +99,7 @@ class DataTyper(Operator):
     def __init__(self, task_id: int, task_name: str, params: list) -> None:
         super(DataTyper, self).__init__(task_id=task_id, task_name=task_name, params=params)
 
-    @task_event
+    @operator
     def execute(self, data: pd.DataFrame = None, context: Any = None) -> Any:
         """Executes the data typing task
 
@@ -121,7 +121,7 @@ class DataSelector(Operator):
     def __init__(self, task_id: int, task_name: str, params: list) -> None:
         super(DataSelector, self).__init__(task_id=task_id, task_name=task_name, params=params)
 
-    @task_event
+    @operator
     def execute(self, data: pd.DataFrame = None, context: Any = None) -> Any:
         """Executes the data typing task
 
@@ -143,7 +143,7 @@ class FeatureTransformer(Operator):
             task_id=task_id, task_name=task_name, params=params
         )
 
-    @task_event
+    @operator
     def execute(self, data: pd.DataFrame = None, context: Any = None) -> None:
         """Core feature extraction and conversion
 

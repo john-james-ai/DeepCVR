@@ -11,7 +11,7 @@
 # URL      : https://github.com/john-james-ai/cvr                                                  #
 # ------------------------------------------------------------------------------------------------ #
 # Created  : Monday, March 14th 2022, 7:53:27 pm                                                   #
-# Modified : Thursday, March 17th 2022, 7:27:03 am                                                 #
+# Modified : Thursday, March 31st 2022, 5:59:54 pm                                                 #
 # Modifier : John James (john.james.ai.studio@gmail.com)                                           #
 # ------------------------------------------------------------------------------------------------ #
 # License  : BSD 3-clause "New" or "Revised" License                                               #
@@ -19,7 +19,6 @@
 # ================================================================================================ #
 #%%
 import functools
-import pprint
 from datetime import datetime
 import pandas as pd
 from deepcvr.utils.logger import LoggerBuilder
@@ -32,48 +31,29 @@ pd.set_option("display.precision", 2)
 
 
 # ------------------------------------------------------------------------------------------------ #
-logger_builder = LoggerBuilder()
-logger = (
-    logger_builder.reset()
-    .build(name="task_event")
-    .set_file_handler()
-    .set_level(level="info")
-    .logger
-)
 
 
 def event(func):
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
-        args_fmt = pprint.pformat([arg for arg in args])
-        kwargs_fmt = pprint.pformat(kwargs)
-        signature = args_fmt + ", " + kwargs_fmt
 
-        logger.info("{} called with {}".format(func.__qualname__, pprint.pformat(signature)))
+        logger_builder = LoggerBuilder()
 
-        try:
-            result = func(self, *args, **kwargs)
-            return result
+        logger = (
+            logger_builder.reset()
+            .set_events_logfile()
+            .set_operations_logfile()
+            .set_level(level="info")
+            .build(name=func.__module__)
+            .logger
+        )
 
-        except Exception as e:
-            logger.exception(f"Exception raised in {func.__name__}. exception: {str(e)}")
-            raise e
-
-    return wrapper
-
-
-def task_event(func):
-    @functools.wraps(func)
-    def wrapper(self, *args, **kwargs):
         signature = self.__dict__.values()
 
         logger.info("{} called with {}".format(func.__qualname__, signature))
 
         try:
-            start = datetime.now()
             result = func(self, *args, **kwargs)
-            end = datetime.now()
-            print_result(self, start, end)
             return result
 
         except Exception as e:
@@ -83,12 +63,44 @@ def task_event(func):
     return wrapper
 
 
-def print_result(self, start, end):
+def operator(func):
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+
+        logger_builder = LoggerBuilder()
+
+        logger = (
+            logger_builder.reset()
+            .set_events_logfile()
+            .set_operations_logfile()
+            .set_level(level="info")
+            .build(name=func.__module__)
+            .logger
+        )
+
+        try:
+            module = func.__module__
+            classname = func.__qualname__
+            start = datetime.now()
+            result = func(self, *args, **kwargs)
+            end = datetime.now()
+            print_result(module, classname, self, start, end)
+            return result
+
+        except Exception as e:
+            logger.exception(f"Exception raised in {func.__name__}. exception: {str(e)}")
+            raise e
+
+    return wrapper
+
+
+def print_result(module: str, classname: str, self: str, start: datetime, end: datetime):
     task_id = self.__dict__["_task_id"]
-    task_name = self.__dict__["_task_name"].replace("_", " ")
+    task_name = self.__dict__["_task_name"]
     duration = end - start
     duration = duration.total_seconds()
-    msg = "\tTask {}:\t{} complete.\tDuration: {} seconds.".format(
-        str(task_id), task_name, str(round(duration, 2))
+    module = module.split(".")[2]
+    msg = "Module: {}\t\tTask {}:\t{}\tComplete.\tDuration:{} seconds.".format(
+        str(module), str(task_id), task_name, str(round(duration, 2))
     )
     print(msg)
