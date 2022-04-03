@@ -11,13 +11,4 @@ kernelspec:
   name: python3
 ---
 # Preface
-Deep learning has been applied to....
 
-## Contribution
-
-## Intended Audience
-## Using this Book
-## Computational Environment
-## Reproducibility
-### Data Availability
-### Code Availability
